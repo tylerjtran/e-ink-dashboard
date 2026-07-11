@@ -25,6 +25,77 @@ def render_html(data: dict) -> str:
     return template.render(**data, plant_qr_uri=plant_qr_uri)
 
 
+# Boxes whose content length varies run to run (more/fewer live games,
+# birthdays, pies) rather than being fixed by design (unlike e.g. Business
+# Watch, which is one line per configured business). Their template flex
+# values are just a reasonable starting point/fallback -- _fit_variable_boxes
+# overrides them based on actually-measured content each render.
+VARIABLE_CONTENT_BOX_IDS = ["birthdays", "game-watch", "pie-watch"]
+
+# JS, not Python: needs real layout/measurement (scrollHeight, computed
+# styles) that only exist in the rendered page.
+_FIT_VARIABLE_BOXES_JS = """
+(boxIds) => {
+    const boxes = boxIds.map(id => document.getElementById(id));
+    const column = boxes[0].parentElement;
+
+    const naturalHeight = (box) => {
+        const title = box.querySelector('.box-title');
+        const body = box.querySelector('.box-body');
+        const style = getComputedStyle(box);
+        const paddingV = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        const borderV = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+        const titleMarginBottom = parseFloat(getComputedStyle(title).marginBottom) || 0;
+        // scrollHeight reflects the box-body's true content height even
+        // while overflow:hidden is clipping it visually -- that's exactly
+        // what we need to measure before deciding how much room to give it.
+        return title.offsetHeight + titleMarginBottom + body.scrollHeight + paddingV + borderV;
+    };
+
+    const heights = boxes.map(naturalHeight);
+    const gap = parseFloat(getComputedStyle(column).rowGap) || 0;
+    const totalNatural = heights.reduce((a, b) => a + b, 0) + gap * (boxes.length - 1);
+    const available = column.clientHeight;
+
+    if (totalNatural <= available) {
+        // Fits: size each box to exactly what its content needs (no grow,
+        // no shrink -- content-driven, not an arbitrary ratio), and let the
+        // last box absorb any leftover column space so the column still
+        // fills its height instead of leaving a stray gap at the bottom.
+        boxes.forEach((box, i) => {
+            const grow = i === boxes.length - 1 ? 1 : 0;
+            box.style.flex = `${grow} 0 ${heights[i]}px`;
+        });
+        return { fit: true, totalNatural, available };
+    }
+
+    // Doesn't fit -- shrink these boxes' text proportionally rather than
+    // let CSS silently clip content or push a box off the bottom of the
+    // canvas. Rare in practice (birthdays are capped, game watch is always
+    // exactly 4 rows), but this is the graceful fallback if it ever happens.
+    const scale = available / totalNatural;
+    boxes.forEach((box, i) => {
+        const body = box.querySelector('.box-body');
+        const currentSize = parseFloat(getComputedStyle(body).fontSize);
+        body.style.fontSize = `${(currentSize * scale).toFixed(2)}px`;
+        box.style.flex = `0 0 ${(heights[i] * scale).toFixed(2)}px`;
+    });
+    return { fit: false, totalNatural, available, scale };
+}
+"""
+
+
+def fit_variable_boxes(page) -> None:
+    result = page.evaluate(_FIT_VARIABLE_BOXES_JS, VARIABLE_CONTENT_BOX_IDS)
+    if not result["fit"]:
+        print(
+            f"[render] WARNING: right-column content ({result['totalNatural']:.0f}px) exceeded "
+            f"available height ({result['available']:.0f}px) -- shrank text by "
+            f"{result['scale']:.2f}x to fit. Consider capping content further "
+            f"(e.g. fewer upcoming birthdays/pies) if this happens often."
+        )
+
+
 def html_to_png(html: str, out_path: Path) -> None:
     out_path = out_path.resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -36,6 +107,7 @@ def html_to_png(html: str, out_path: Path) -> None:
         page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT}, device_scale_factor=1)
         page.goto(html_path.as_uri())
         page.wait_for_timeout(200)  # let web fonts finish loading
+        fit_variable_boxes(page)
         page.screenshot(path=str(out_path))
         browser.close()
 

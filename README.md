@@ -34,6 +34,16 @@ docs/       setup instructions
 All fetching/computation lives in `render/fetch_data.py` unless noted.
 Config (locations, hours, thresholds) lives in `render/config/*.yaml`.
 
+**Layout note**: Birthday Watch, Game Watch, and Pie Watch have genuinely
+variable-length content (more simultaneous live games, more birthdays, more
+pies). `render/render.py`'s `fit_variable_boxes()` measures each box's real
+content height in the browser (before the final screenshot) and sizes them
+to fit exactly, instead of relying on hand-picked flex ratios that only
+happen to match today's content. If content ever exceeds the available
+space in the 800x480 canvas (a hard physical limit -- the display can't
+scroll), it shrinks that content's text proportionally rather than clipping
+or overflowing, and logs a warning.
+
 **Weather**
 - Outdoor + indoor temp: Ambient Weather Network (your station), falling
   back to Open-Meteo's outdoor temp (no indoor reading) if those secrets
