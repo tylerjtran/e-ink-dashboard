@@ -26,19 +26,33 @@ def scrape_pies() -> list[str]:
         try:
             page = browser.new_page()
             page.goto(CATEGORY_URL, wait_until="networkidle", timeout=30000)
-            # The SPA's client-side product fetch can lag slightly past
-            # "networkidle" -- give it a beat.
-            page.wait_for_timeout(2000)
+            _wait_for_app_ready(page)
             return _extract_product_names(page)
         finally:
             browser.close()
+
+
+def _wait_for_app_ready(page):
+    """The site's own JS removes '.loading-view' once the SPA has finished
+    bootstrapping (window.stopSiteLoadingAnimation, seen in the page's
+    inline script). Wait for that rather than a fixed sleep -- and log
+    whether it actually happened, since that's the single most useful signal
+    for diagnosing an empty scrape."""
+    try:
+        page.wait_for_selector(".loading-view", state="detached", timeout=15000)
+        print("[scrape_pie] loading overlay cleared")
+    except Exception:
+        still_present = page.locator(".loading-view").count() > 0
+        print(f"[scrape_pie] loading overlay still present after 15s: {still_present}")
+    # Give the product-fetch XHR a beat even after the overlay clears.
+    page.wait_for_timeout(2000)
 
 
 def _extract_product_names(page) -> list[str]:
     cards = page.locator(".item_card")
     count = cards.count()
     if count == 0:
-        print("[scrape_pie] no .item_card elements found -- site markup may have changed")
+        _log_diagnostics(page)
         return []
 
     names = []
@@ -52,6 +66,29 @@ def _extract_product_names(page) -> list[str]:
 
     print(f"[scrape_pie] found {len(names)} product name(s) in {count} card(s)")
     return names
+
+
+def _log_diagnostics(page):
+    """No .item_card found -- log everything useful for figuring out why
+    without needing another round-trip of "here's some HTML"."""
+    print("[scrape_pie] no .item_card elements found -- diagnostics follow")
+    print(f"[scrape_pie]   final URL: {page.url}")
+    try:
+        print(f"[scrape_pie]   page title: {page.title()}")
+    except Exception as e:
+        print(f"[scrape_pie]   page title fetch failed: {e}")
+    try:
+        body_text = page.inner_text("body")
+        print(f"[scrape_pie]   body text length: {len(body_text)} chars")
+        print(f"[scrape_pie]   body text (first 500 chars): {body_text[:500]!r}")
+    except Exception as e:
+        print(f"[scrape_pie]   body text fetch failed: {e}")
+    for selector in [".item_card", "[wrapperid='order-product-title']", "[data-v-7921ef50]", "article", "main"]:
+        try:
+            n = page.locator(selector).count()
+            print(f"[scrape_pie]   count of {selector!r}: {n}")
+        except Exception as e:
+            print(f"[scrape_pie]   count of {selector!r} failed: {e}")
 
 
 if __name__ == "__main__":
