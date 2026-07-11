@@ -37,6 +37,9 @@
     display: flex;
     flex-direction: column;
     border: 3px solid #000;
+    border-radius: 14px;
+    padding: 10px;
+    gap: 8px;
   }
 
   /* ---------- header ---------- */
@@ -44,14 +47,17 @@
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    padding: 10px 16px 8px 16px;
+    padding-bottom: 8px;
     border-bottom: 3px solid #000;
   }
 
-  #header .date-block {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
+  /* Plain (non-flex) so normal inline baseline rules apply -- this is what
+     lets #header's `align-items: baseline` line up the date/updated text
+     with the electric text below, without fighting nested-flex baseline
+     ambiguity. */
+  #header .date-block,
+  #header .electric {
+    display: block;
   }
 
   #header .date {
@@ -65,41 +71,40 @@
     font-weight: 400;
     font-size: 13px;
     color: #444;
+    margin-left: 10px;
   }
 
   #header .electric {
-    display: flex;
-    align-items: center;
-    gap: 4px;
     font-size: 13px;
     font-weight: 600;
+  }
+
+  #header .electric .material-symbols-outlined {
+    margin-right: 4px;
   }
 
   /* ---------- grid ---------- */
   #grid {
     flex: 1;
     display: flex;
+    gap: 8px;
+    overflow: hidden;
   }
 
   .column {
     flex: 1;
     display: flex;
     flex-direction: column;
-  }
-
-  .column + .column {
-    border-left: 3px solid #000;
+    gap: 8px;
   }
 
   .box {
     display: flex;
     flex-direction: column;
+    border: 3px solid #000;
+    border-radius: 10px;
     padding: 10px 14px;
     overflow: hidden;
-  }
-
-  .box + .box {
-    border-top: 3px solid #000;
   }
 
   .box-title {
@@ -125,8 +130,8 @@
   }
 
   .weather-temp {
-    font-family: 'Archivo', sans-serif;
-    font-weight: 900;
+    font-family: 'Kameron', serif;
+    font-weight: 700;
     font-size: 42px;
     line-height: 1;
   }
@@ -144,8 +149,8 @@
 
   /* ---------- plant watch ---------- */
   .plant-count {
-    font-family: 'Archivo', sans-serif;
-    font-weight: 900;
+    font-family: 'Kameron', serif;
+    font-weight: 700;
     font-size: 40px;
     line-height: 1;
   }
@@ -198,7 +203,7 @@
 
       <!-- LEFT COLUMN -->
       <div class="column">
-        <div class="box" id="weather" style="flex: 4;">
+        <div class="box" id="weather" style="flex: 5.5;">
           <div class="box-title">Weather</div>
           <div class="box-body">
             <div class="weather-top">
@@ -212,7 +217,7 @@
             <div class="weather-line muted">{{ weather.burn_ban_str }}</div>
           </div>
         </div>
-        <div class="box" id="skygazing" style="flex: 2;">
+        <div class="box" id="skygazing" style="flex: 1.5;">
           <div class="box-title">Skygazing</div>
           <div class="box-body">
             <p>{{ skygazing.conditions_str }} {{ skygazing.moon_phase_str }}</p>
@@ -231,7 +236,7 @@
 
       <!-- MIDDLE COLUMN -->
       <div class="column">
-        <div class="box" id="plant-watch" style="flex: 2;">
+        <div class="box" id="plant-watch" style="flex: 3;">
           <div class="box-title">Plant Watch</div>
           <div class="box-body">
             <div class="plant-count">{{ plant_watch.species_count }}</div>
