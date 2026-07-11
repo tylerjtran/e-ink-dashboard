@@ -222,7 +222,7 @@ def compute_normal_diff(settings, high_f):
         return f"{diff}° warmer than normal"
     if diff <= -2:
         return f"{-diff}° cooler than normal"
-    return "Near normal"
+    return "Near normal temperature"
 
 
 # -------------------------------------------------------------- skygazing --
@@ -345,7 +345,7 @@ def fetch_usgs_river_temp(settings):
             elif diff < 0:
                 normal_diff_str = f"{-diff}° colder than normal"
             else:
-                normal_diff_str = "Near normal"
+                normal_diff_str = "Near normal temperature"
     except Exception as e:
         print(f"[warn] USGS median-temperature fetch failed: {e}")
 
@@ -572,6 +572,12 @@ def fetch_game_watch(settings, now):
             "name": settings["nba"]["team_name"],
             "status": fetch_espn_game("basketball", "nba", settings["nba"]["team_abbr"], now, tz_name),
         },
+        "flyers": {
+            "name": settings["nhl"]["team_name"],
+            "status": fetch_espn_game(
+                "hockey", "nhl", settings["nhl"]["team_abbr"], now, tz_name, period_label="period"
+            ),
+        },
     }
 
 
@@ -646,7 +652,7 @@ def _mlb_live_status(game, opponent):
         return f"vs {opponent} in progress"
 
 
-def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name):
+def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name, period_label="quarter"):
     try:
         r = requests.get(
             f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league_path}/teams/{team_abbr}/schedule",
@@ -669,7 +675,7 @@ def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name):
         if state == "in":
             period = status.get("period")
             if period:
-                return f"vs {opponent} in progress, {_ordinal(period)} quarter"
+                return f"vs {opponent} in progress, {_ordinal(period)} {period_label}"
             return f"vs {opponent} in progress"
 
         if state == "pre":

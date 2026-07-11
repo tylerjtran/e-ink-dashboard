@@ -98,11 +98,12 @@ Config (locations, hours, thresholds) lives in `render/config/*.yaml`.
 **Game Watch**
 - Phillies: official MLB Stats API -- checks for a live game first, then
   the next scheduled one in the following 30 days.
-- Eagles / Sixers: ESPN's public site API (`site.api.espn.com`) -- same
-  live-then-next-scheduled logic, using each team's full season schedule
-  and computing "today"/"tomorrow"/date relative to now. This API is free
-  and unauthenticated but undocumented/unofficial -- it could change shape
-  without notice, unlike the official MLB one.
+- Eagles / Sixers / Flyers: ESPN's public site API (`site.api.espn.com`) --
+  same live-then-next-scheduled logic, using each team's full season
+  schedule and computing "today"/"tomorrow"/date relative to now. This API
+  is free and unauthenticated but undocumented/unofficial -- it could
+  change shape without notice, unlike the official MLB one. Live-game
+  wording says "quarter" for football/basketball, "period" for hockey.
 - Any team shows as "Team: –" if no live or upcoming game is found (e.g.
   NBA/NFL off-season before the next schedule is published).
 

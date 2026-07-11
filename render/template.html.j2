@@ -301,7 +301,7 @@
         <div class="box" id="game-watch" style="flex: 3.5;">
           <div class="box-title">Game Watch</div>
           <div class="box-body">
-            {% for g in [game_watch.phillies, game_watch.eagles, game_watch.sixers] %}
+            {% for g in [game_watch.phillies, game_watch.eagles, game_watch.sixers, game_watch.flyers] %}
             <div class="game-row"><strong>{{ g.name }}</strong>{% if g.status %} {{ g.status }}{% else %}: &ndash;{% endif %}</div>
             {% endfor %}
           </div>

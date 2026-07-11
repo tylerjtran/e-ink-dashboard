@@ -51,7 +51,8 @@
   "game_watch": {
     "phillies": {"name": "Phillies", "status": "vs Braves in progress, bottom of 6th"},
     "eagles": {"name": "Eagles", "status": "vs Cowboys today at 1pm"},
-    "sixers": {"name": "Sixers", "status": null}
+    "sixers": {"name": "Sixers", "status": null},
+    "flyers": {"name": "Flyers", "status": "vs Rangers tomorrow at 7pm"}
   },
   "pie_watch": {
     "message": null,

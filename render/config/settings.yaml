@@ -91,3 +91,7 @@ nfl:
 nba:
   team_abbr: "phi"  # Philadelphia 76ers, per ESPN's site API
   team_name: "Sixers"
+
+nhl:
+  team_abbr: "phi"  # Philadelphia Flyers, per ESPN's site API
+  team_name: "Flyers"
