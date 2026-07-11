@@ -91,14 +91,15 @@ to test those two, export the same four env vars locally before running it.
   403 without a browser-like `User-Agent` header, which `fetch_nyc_reservoir()`
   sets -- if DEP ever changes their page layout, the regex in that function
   will need updating (it fails soft, logging a warning and showing "—").
-- **River temperature**: USGS site 01417000 (East Branch Delaware at
-  Downsville) wasn't actively reporting water temperature as of setup, only
-  discharge/gage height. The dashboard shows "—°F" when that happens.
-  Worth re-checking periodically at
-  https://waterdata.usgs.gov/monitoring-location/01417000.
-- **Climate/reservoir "normal" comparisons** are rough monthly-average
-  tables, not official daily normals -- good enough for a ballpark
-  "warmer/lower than normal" line, not precise.
+- **River temperature**: fixed -- switched to USGS site 01417500 (East
+  Branch Delaware at Harvard, NY), which actively reports temperature
+  (01417000 at Downsville didn't). The "warmer/colder than normal" line for
+  the river comes from USGS's actual daily-statistics service (decades of
+  median-by-day-of-year data via `nwis/stat`), not a hand-maintained table
+  like the weather/reservoir normals below -- this one's the real thing.
+- **Weather/reservoir "normal" comparisons** are rough monthly-average
+  tables (`render/config/settings.yaml`), not official daily normals --
+  good enough for a ballpark "warmer/lower than normal" line, not precise.
 - **Pie Watch** is a placeholder. The plan is a Playwright scrape of the
   Magpies site/social -- to be designed later.
 - **Phillies "Final" score line** hasn't been tested against a live

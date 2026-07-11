@@ -88,7 +88,8 @@ def fetch_weather(settings):
     params = {
         "latitude": loc["lat"],
         "longitude": loc["lon"],
-        "current": "temperature_2m,cloud_cover,weather_code",
+        "current": "temperature_2m,weather_code",
+        "hourly": "cloud_cover",
         "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
         "temperature_unit": "fahrenheit",
         "forecast_days": 1,
@@ -105,7 +106,7 @@ def fetch_weather(settings):
     weather_code = current.get("weather_code", daily["weather_code"][0])
     condition = WMO_CODE_TEXT.get(weather_code, "Unknown")
     chance_rain_pct = daily["precipitation_probability_max"][0]
-    cloud_cover_pct = current.get("cloud_cover", 0)
+    tonight_cloud_cover_pct = compute_tonight_cloud_cover(d["hourly"])
 
     outdoor_temp_f = round(current["temperature_2m"])
     indoor_temp_f = None
@@ -118,6 +119,7 @@ def fetch_weather(settings):
         print(f"[warn] Ambient Weather fetch failed, using Open-Meteo temp only: {e}")
 
     normal_diff_str = compute_normal_diff(settings, high_f)
+    philly_diff_str = compute_philly_diff(settings, outdoor_temp_f)
 
     return {
         "temp_f": outdoor_temp_f,
@@ -126,11 +128,53 @@ def fetch_weather(settings):
         "high_f": high_f,
         "low_f": low_f,
         "normal_diff_str": normal_diff_str,
+        "philly_diff_str": philly_diff_str,
         "indoor_temp_f": indoor_temp_f if indoor_temp_f is not None else outdoor_temp_f,
         "burn_ban_str": "Burn ban in effect" if settings["burn_ban_active"] else "No burn ban",
         "icon_name": weather_icon_name(weather_code),
-        "_cloud_cover_pct": cloud_cover_pct,  # used by skygazing, not displayed directly
+        "_tonight_cloud_cover_pct": tonight_cloud_cover_pct,  # used by skygazing, not displayed directly
     }
+
+
+def compute_philly_diff(settings, outdoor_temp_f):
+    try:
+        philly = settings["philly"]
+        r = requests.get(
+            settings["open_meteo"]["base_url"],
+            params={
+                "latitude": philly["lat"],
+                "longitude": philly["lon"],
+                "current": "temperature_2m",
+                "temperature_unit": "fahrenheit",
+                "forecast_days": 1,
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
+        r.raise_for_status()
+        philly_temp_f = r.json()["current"]["temperature_2m"]
+        diff = round(outdoor_temp_f - philly_temp_f)
+        if diff > 0:
+            return f"{diff}° warmer than Philly"
+        if diff < 0:
+            return f"{-diff}° cooler than Philly"
+        return "Same as Philly"
+    except Exception as e:
+        print(f"[warn] Philly comparison fetch failed: {e}")
+        return ""
+
+
+def compute_tonight_cloud_cover(hourly):
+    """Average forecast cloud cover for 9-11pm today -- skygazing conditions
+    describe tonight's sky, not whatever it looks like right now."""
+    tonight_hours = ("T21:00", "T22:00", "T23:00")
+    values = [
+        cover
+        for t, cover in zip(hourly["time"], hourly["cloud_cover"])
+        if t.endswith(tonight_hours)
+    ]
+    if not values:
+        return hourly["cloud_cover"][-1] if hourly["cloud_cover"] else 0
+    return sum(values) / len(values)
 
 
 def weather_icon_name(weather_code):
@@ -189,8 +233,8 @@ def fetch_skygazing(settings, cloud_cover_pct):
     phase_name = moon_phase_name(phase_value)
     illumination_pct = moon_illumination_pct(phase_value)
 
-    conditions_str = f"{rate_sky_conditions(cloud_cover_pct, illumination_pct)} conditions."
-    moon_phase_str = f"{phase_name}."
+    conditions_str = f"{rate_sky_conditions(cloud_cover_pct, illumination_pct)} conditions tonight."
+    moon_phase_str = f"Moon: {phase_name}."
 
     event_str = next_meteor_shower_str(today)
 
@@ -254,12 +298,13 @@ def next_meteor_shower_str(today, lookahead_days=14):
 # --------------------------------------------------------- river/reservoir --
 
 def fetch_river_reservoir(settings):
-    river_temp_f = fetch_usgs_river_temp(settings)
+    river_temp_f, river_normal_diff_str = fetch_usgs_river_temp(settings)
     reservoir_pct_full, reservoir_note = fetch_nyc_reservoir(settings)
 
     return {
         "river_name": "East Branch of the Delaware",
         "river_temp_f": river_temp_f if river_temp_f is not None else "—",
+        "river_normal_diff_str": river_normal_diff_str,
         "reservoir_name": "Pepacton Reservoir",
         "reservoir_pct_full": reservoir_pct_full if reservoir_pct_full is not None else "—",
         "reservoir_note": reservoir_note,
@@ -281,16 +326,59 @@ def fetch_usgs_river_temp(settings):
         )
         r.raise_for_status()
         series = r.json()["value"]["timeSeries"]
-        if not series:
-            return None
-        values = series[0]["values"][0]["value"]
+        values = series[0]["values"][0]["value"] if series else []
         if not values:
-            return None
+            return None, ""
         temp_c = float(values[-1]["value"])
-        return round(temp_c * 9 / 5 + 32)
+        temp_f = round(temp_c * 9 / 5 + 32)
     except Exception as e:
         print(f"[warn] USGS river temp fetch failed: {e}")
+        return None, ""
+
+    normal_diff_str = ""
+    try:
+        median_c = fetch_usgs_daily_median(settings)
+        if median_c is not None:
+            diff = round(temp_f - (median_c * 9 / 5 + 32))
+            if diff > 0:
+                normal_diff_str = f"{diff}° warmer than normal"
+            elif diff < 0:
+                normal_diff_str = f"{-diff}° colder than normal"
+            else:
+                normal_diff_str = "Near normal"
+    except Exception as e:
+        print(f"[warn] USGS median-temperature fetch failed: {e}")
+
+    return temp_f, normal_diff_str
+
+
+def fetch_usgs_daily_median(settings):
+    """Median water temp (deg C) for today's day-of-year, from USGS's
+    long-term daily statistics service (decades of history, not a forecast)."""
+    usgs = settings["usgs"]
+    r = requests.get(
+        "https://waterservices.usgs.gov/nwis/stat/",
+        params={
+            "format": "rdb",
+            "sites": usgs["site_id"],
+            "statReportType": "daily",
+            "statType": "median",
+            "parameterCd": usgs["temperature_param_cd"],
+        },
+        timeout=REQUEST_TIMEOUT,
+    )
+    r.raise_for_status()
+    lines = [line for line in r.text.splitlines() if line and not line.startswith("#")]
+    if len(lines) < 3:
         return None
+    header = lines[0].split("\t")
+    idx_month, idx_day, idx_p50 = header.index("month_nu"), header.index("day_nu"), header.index("p50_va")
+    today = date.today()
+    for row in lines[2:]:  # lines[1] is the rdb format-spec row (5s, 15s, ...)
+        cols = row.split("\t")
+        if int(cols[idx_month]) == today.month and int(cols[idx_day]) == today.day:
+            return float(cols[idx_p50]) if cols[idx_p50] else None
+    return None
 
 
 def fetch_nyc_reservoir(settings):
@@ -340,6 +428,9 @@ def fetch_plant_watch(settings):
         current = _inat_species_ids(base, slug)
         first_of_month = date.today().replace(day=1)
         day_before = first_of_month - timedelta(days=1)
+        # observed_d2 (when the sighting happened), not created_d2 (when it
+        # was added/IDed in iNaturalist) -- "new this month" tracks freshly
+        # sighted species.
         before_this_month = _inat_species_ids(base, slug, observed_d2=day_before.isoformat())
         native = _inat_species_ids(base, slug, extra={"native": "true"})
 
@@ -354,7 +445,9 @@ def fetch_plant_watch(settings):
 
 
 def _inat_species_ids(base_url, project_slug, observed_d2=None, extra=None):
-    params = {"project_id": project_slug, "per_page": 200}
+    # iconic_taxa=Plantae: the project also has non-plant (e.g. animal)
+    # observations that shouldn't count toward "species identified".
+    params = {"project_id": project_slug, "iconic_taxa": "Plantae", "per_page": 200}
     if observed_d2:
         params["observed_d2"] = observed_d2
     if extra:
@@ -367,7 +460,10 @@ def _inat_species_ids(base_url, project_slug, observed_d2=None, extra=None):
         r.raise_for_status()
         d = r.json()
         for result in d["results"]:
-            ids.add(result["taxon"]["id"])
+            # Only count species-level IDs -- genus/family-level entries
+            # (e.g. "Rubus" with no species determined) aren't a species.
+            if result["taxon"]["rank"] == "species":
+                ids.add(result["taxon"]["id"])
         if len(d["results"]) < params["per_page"] or page * params["per_page"] >= d["total_results"]:
             break
         page += 1
@@ -603,7 +699,7 @@ def main():
     today = now.date()
 
     weather = fetch_weather(settings)
-    skygazing = fetch_skygazing(settings, weather.pop("_cloud_cover_pct"))
+    skygazing = fetch_skygazing(settings, weather.pop("_tonight_cloud_cover_pct"))
     river_reservoir = fetch_river_reservoir(settings)
     plant_watch = fetch_plant_watch(settings)
     business_watch = fetch_business_watch(now)

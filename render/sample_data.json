@@ -9,6 +9,7 @@
     "high_f": 78,
     "low_f": 61,
     "normal_diff_str": "8° warmer than normal",
+    "philly_diff_str": "5° cooler than Philly",
     "indoor_temp_f": 68,
     "burn_ban_str": "No burn ban",
     "icon_name": "partly_cloudy_day"
@@ -21,6 +22,7 @@
   "river_reservoir": {
     "river_name": "East Branch of the Delaware",
     "river_temp_f": 64,
+    "river_normal_diff_str": "3° colder than normal",
     "reservoir_name": "Pepacton Reservoir",
     "reservoir_pct_full": 87,
     "reservoir_note": "Lower than normal"

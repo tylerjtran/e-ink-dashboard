@@ -4,6 +4,11 @@ location:
   lon: -74.9763
   timezone: "America/New_York"
 
+# For the "warmer/cooler than Philly" line in the weather box.
+philly:
+  lat: 39.9526
+  lon: -75.1652
+
 # Manually toggle during an active NY DEC burn ban. No clean public API was
 # found for this at build time -- flip this by hand until a real source is wired up.
 burn_ban_active: false
@@ -39,13 +44,11 @@ climate_normals:
   dec: { high: 35, low: 18 }
 
 usgs:
-  # East Branch Delaware River at Downsville, NY, just below the Pepacton
-  # Reservoir outlet.
-  site_id: "01417000"
-  # Parameter 00010 = water temperature (deg C). NOTE: as of initial setup this
-  # site was not actively reporting temperature (only discharge/gage height) --
-  # verify at https://waterdata.usgs.gov/monitoring-location/01417000 and swap
-  # in a working site if needed.
+  # East Branch Delaware River at Harvard, NY (USGS-01417500). The previous
+  # site (01417000, at Downsville) wasn't reporting temperature, only
+  # discharge/gage height -- this one actively reports it.
+  site_id: "01417500"
+  # Parameter 00010 = water temperature (deg C).
   temperature_param_cd: "00010"
 
 nyc_reservoir:

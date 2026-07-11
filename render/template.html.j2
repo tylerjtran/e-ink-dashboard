@@ -47,8 +47,6 @@
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    padding-bottom: 8px;
-    border-bottom: 3px solid #000;
   }
 
   /* Plain (non-flex) so normal inline baseline rules apply -- this is what
@@ -173,7 +171,7 @@
   #business-watch .box { flex: 2; }
   .biz-list { display: flex; flex-direction: column; gap: 1px; }
   .biz-row { display: flex; justify-content: space-between; gap: 8px; }
-  .biz-name { }
+  .biz-name.open { font-weight: 700; }
   .biz-status { white-space: nowrap; }
   .biz-status.open { font-weight: 700; }
   .biz-status.closed { color: #555; }
@@ -216,7 +214,7 @@
               <span class="material-symbols-outlined">{{ weather.icon_name }}</span>
             </div>
             <div class="weather-line">{{ weather.condition }} &middot; {{ weather.chance_rain_pct }}% chance of rain</div>
-            <div class="weather-line">H: {{ weather.high_f }}&deg;F&nbsp;&nbsp;L: {{ weather.low_f }}&deg;F</div>
+            <div class="weather-line">H: {{ weather.high_f }}&deg;F&nbsp;&nbsp;L: {{ weather.low_f }}&deg;F{% if weather.philly_diff_str %} &middot; {{ weather.philly_diff_str }}{% endif %}</div>
             <div class="weather-line muted">{{ weather.normal_diff_str }}</div>
             <div class="weather-line muted">{{ weather.indoor_temp_f }}&deg; inside &middot; {{ weather.burn_ban_str }}</div>
           </div>
@@ -232,6 +230,7 @@
           <div class="box-title">River &amp; Reservoir</div>
           <div class="box-body">
             <div class="rr-row"><span class="rr-label">{{ river_reservoir.river_name }}</span> <span class="rr-value">{{ river_reservoir.river_temp_f }}&deg;F</span></div>
+            {% if river_reservoir.river_normal_diff_str %}<div class="rr-row rr-note">{{ river_reservoir.river_normal_diff_str }}</div>{% endif %}
             <div class="rr-row"><span class="rr-label">{{ river_reservoir.reservoir_name }}</span> <span class="rr-value">{{ river_reservoir.reservoir_pct_full }}% full</span></div>
             <div class="rr-row rr-note">{{ river_reservoir.reservoir_note }}</div>
           </div>
@@ -247,7 +246,7 @@
             <div class="plant-label">Species identified</div>
             <div class="plant-sub">
               <div>{{ plant_watch.native_count }} native species</div>
-              <div>+{{ plant_watch.new_this_month }} new this month</div>
+              <div>+{{ plant_watch.new_this_month }} new species IDed this month</div>
             </div>
           </div>
         </div>
@@ -257,7 +256,7 @@
             <div class="biz-list">
               {% for biz in business_watch %}
               <div class="biz-row">
-                <span class="biz-name">{{ biz.name }}:</span>
+                <span class="biz-name {{ 'open' if biz.is_open else '' }}">{{ biz.name }}:</span>
                 <span class="biz-status {{ 'open' if biz.is_open else 'closed' }}">{{ 'Open' if biz.is_open else 'Closed' }}</span>
               </div>
               {% endfor %}
