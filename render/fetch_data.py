@@ -83,57 +83,91 @@ def now_local(tz_name):
 # ---------------------------------------------------------------- weather --
 
 def fetch_weather(settings):
-    loc = settings["location"]
-    om = settings["open_meteo"]
-    params = {
-        "latitude": loc["lat"],
-        "longitude": loc["lon"],
-        "current": "temperature_2m,weather_code",
-        "hourly": "cloud_cover",
-        "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
-        "temperature_unit": "fahrenheit",
-        "forecast_days": 1,
-        "timezone": loc["timezone"],
-    }
-    r = requests.get(om["base_url"], params=params, timeout=REQUEST_TIMEOUT)
-    r.raise_for_status()
-    d = r.json()
-    current = d["current"]
-    daily = d["daily"]
+    # Open-Meteo and Ambient Weather are independent sources -- if one is
+    # down, the other's data (if any) should still make it onto the
+    # dashboard rather than taking every weather field (and every other box,
+    # since main() only writes data.json after every fetch succeeds) down
+    # with it.
+    om = _fetch_open_meteo_weather(settings)
+    aw = _fetch_ambient_weather_safe(settings)
 
-    high_f = round(daily["temperature_2m_max"][0])
-    low_f = round(daily["temperature_2m_min"][0])
-    weather_code = current.get("weather_code", daily["weather_code"][0])
-    condition = WMO_CODE_TEXT.get(weather_code, "Unknown")
-    chance_rain_pct = daily["precipitation_probability_max"][0]
-    tonight_cloud_cover_pct = compute_tonight_cloud_cover(d["hourly"])
+    outdoor_temp_f = round(aw["tempf"]) if aw else (om["outdoor_temp_f"] if om else None)
+    indoor_temp_f = round(aw["tempinf"]) if aw else None
 
-    outdoor_temp_f = round(current["temperature_2m"])
-    indoor_temp_f = None
+    high_f = om["high_f"] if om else None
+    low_f = om["low_f"] if om else None
+    condition = om["condition"] if om else "Unknown"
+    chance_rain_pct = om["chance_rain_pct"] if om else None
+    weather_code = om["weather_code"] if om else None
+    tonight_cloud_cover_pct = om["tonight_cloud_cover_pct"] if om else 50  # neutral guess
+
     try:
-        aw = fetch_ambient_weather(settings)
-        if aw:
-            outdoor_temp_f = round(aw["tempf"])
-            indoor_temp_f = round(aw["tempinf"])
+        normal_diff_str = compute_normal_diff(settings, high_f) if high_f is not None else ""
     except Exception as e:
-        print(f"[warn] Ambient Weather fetch failed, using Open-Meteo temp only: {e}")
-
-    normal_diff_str = compute_normal_diff(settings, high_f)
-    philly_diff_str = compute_philly_diff(settings, outdoor_temp_f)
+        print(f"[warn] Normal-diff computation failed: {e}")
+        normal_diff_str = ""
+    philly_diff_str = compute_philly_diff(settings, outdoor_temp_f) if outdoor_temp_f is not None else ""
 
     return {
-        "temp_f": outdoor_temp_f,
+        "temp_f": _dash_if_none(outdoor_temp_f),
         "condition": condition,
-        "chance_rain_pct": chance_rain_pct,
-        "high_f": high_f,
-        "low_f": low_f,
+        "chance_rain_pct": _dash_if_none(chance_rain_pct),
+        "high_f": _dash_if_none(high_f),
+        "low_f": _dash_if_none(low_f),
         "normal_diff_str": normal_diff_str,
         "philly_diff_str": philly_diff_str,
-        "indoor_temp_f": indoor_temp_f if indoor_temp_f is not None else outdoor_temp_f,
+        "indoor_temp_f": _dash_if_none(indoor_temp_f if indoor_temp_f is not None else outdoor_temp_f),
         "burn_ban_str": "Burn ban in effect" if settings["burn_ban_active"] else "No burn ban",
-        "icon_name": weather_icon_name(weather_code),
+        "icon_name": weather_icon_name(weather_code) if weather_code is not None else "device_thermostat",
         "_tonight_cloud_cover_pct": tonight_cloud_cover_pct,  # used by skygazing, not displayed directly
     }
+
+
+def _dash_if_none(value):
+    return value if value is not None else "—"
+
+
+def _fetch_open_meteo_weather(settings):
+    try:
+        loc = settings["location"]
+        om = settings["open_meteo"]
+        params = {
+            "latitude": loc["lat"],
+            "longitude": loc["lon"],
+            "current": "temperature_2m,weather_code",
+            "hourly": "cloud_cover",
+            "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
+            "temperature_unit": "fahrenheit",
+            "forecast_days": 1,
+            "timezone": loc["timezone"],
+        }
+        r = requests.get(om["base_url"], params=params, timeout=REQUEST_TIMEOUT)
+        r.raise_for_status()
+        d = r.json()
+        current = d["current"]
+        daily = d["daily"]
+        weather_code = current.get("weather_code", daily["weather_code"][0])
+
+        return {
+            "outdoor_temp_f": round(current["temperature_2m"]),
+            "high_f": round(daily["temperature_2m_max"][0]),
+            "low_f": round(daily["temperature_2m_min"][0]),
+            "condition": WMO_CODE_TEXT.get(weather_code, "Unknown"),
+            "chance_rain_pct": daily["precipitation_probability_max"][0],
+            "weather_code": weather_code,
+            "tonight_cloud_cover_pct": compute_tonight_cloud_cover(d["hourly"]),
+        }
+    except Exception as e:
+        print(f"[warn] Open-Meteo weather fetch failed: {e}")
+        return None
+
+
+def _fetch_ambient_weather_safe(settings):
+    try:
+        return fetch_ambient_weather(settings)
+    except Exception as e:
+        print(f"[warn] Ambient Weather fetch failed: {e}")
+        return None
 
 
 def compute_philly_diff(settings, outdoor_temp_f):

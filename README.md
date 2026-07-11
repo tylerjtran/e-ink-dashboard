@@ -29,6 +29,28 @@ dashboard/  latest rendered output, published by CI
 docs/       setup instructions
 ```
 
+## Error handling
+
+Two layers:
+
+- **Per-box isolation**: nearly every external call in `fetch_data.py`
+  catches its own failures and degrades gracefully -- a box shows "—" or a
+  placeholder rather than breaking the run. Notably, Weather has two
+  independent sources (Open-Meteo, Ambient Weather) that can each fail
+  without affecting the other, and each of the 4 Game Watch teams fails
+  independently (if ESPN is down but MLB isn't, Phillies still shows real
+  data while Eagles/Sixers/Flyers show "–").
+- **Fail-closed pipeline**: `main()` only writes `data.json` after every box
+  has been fetched (degraded or not), and `render.py`/`convert.py` have no
+  error handling of their own. If something raises anyway (a bug, a config
+  typo, Playwright failing to launch), that whole run aborts and nothing
+  gets committed -- the dashboard keeps showing its last successfully
+  rendered image rather than a broken or half-updated one. Given the
+  15-minute cadence, a transient failure usually just delays the next
+  update by one cycle; a sustained one leaves the dashboard stale until it
+  clears (GitHub emails the repo owner by default on repeated scheduled-run
+  failures, but there's no other alerting built here).
+
 ## Data sources & logic
 
 All fetching/computation lives in `render/fetch_data.py` unless noted.
