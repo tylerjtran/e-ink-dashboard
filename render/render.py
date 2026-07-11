@@ -11,13 +11,18 @@ from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).parent
+ASSETS = HERE / "assets"
 WIDTH, HEIGHT = 800, 480
 
 
 def render_html(data: dict) -> str:
     env = Environment(loader=FileSystemLoader(str(HERE)))
     template = env.get_template("template.html.j2")
-    return template.render(**data)
+    # Absolute file:// URI, not a relative path -- the rendered HTML can end
+    # up written to a different directory than render/ (e.g. output/), so a
+    # relative "assets/..." src wouldn't reliably resolve.
+    plant_qr_uri = (ASSETS / "plant_qr_code.png").as_uri()
+    return template.render(**data, plant_qr_uri=plant_qr_uri)
 
 
 def html_to_png(html: str, out_path: Path) -> None:

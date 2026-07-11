@@ -149,6 +149,14 @@
   .rr-note { margin-left: 12px; color: #333; }
 
   /* ---------- plant watch ---------- */
+  #plant-watch { position: relative; }
+  .plant-qr {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    width: 56px;
+    height: 56px;
+  }
   .plant-count {
     font-family: 'Kameron', serif;
     font-weight: 700;
@@ -237,6 +245,7 @@
       <!-- MIDDLE COLUMN -->
       <div class="column">
         <div class="box" id="plant-watch" style="flex: 3;">
+          <img class="plant-qr" src="{{ plant_qr_uri }}" alt="">
           <div class="box-title">Plant Watch</div>
           <div class="box-body">
             <div class="plant-count">{{ plant_watch.species_count }}</div>
