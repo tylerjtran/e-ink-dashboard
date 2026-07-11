@@ -2,8 +2,8 @@
 
 A 7.5" (800x480) e-paper dashboard for a house in Downsville, NY. Shows
 weather, stargazing conditions, river/reservoir levels, local plant
-observations, nearby business hours, birthdays, Phillies/Eagles/Sixers game
-status, and a pie-watch box for the local bakery.
+observations, nearby business hours, birthdays, Phillies/Eagles/Sixers/Flyers
+game status, and a pie-watch box for the local bakery.
 
 ## How it works
 
@@ -69,9 +69,13 @@ or overflowing, and logs a warning.
 **Weather**
 - Outdoor + indoor temp: Ambient Weather Network (your station), falling
   back to Open-Meteo's outdoor temp (no indoor reading) if those secrets
-  aren't set.
+  aren't set *or* if the Ambient Weather call fails at runtime.
 - Condition, chance of rain, high/low: Open-Meteo forecast, mapped from WMO
   weather codes to text (`WMO_CODE_TEXT`).
+- Open-Meteo and Ambient Weather are fetched independently and can each fail
+  without affecting the other (see "Error handling" above) -- if Open-Meteo
+  is down, temp still shows from Ambient Weather (or "—" if that's also
+  unavailable), while condition/rain%/high/low show "Unknown"/"—".
 - "X° warmer/cooler than normal": forecast high vs. a hand-maintained
   monthly climate-normals table (`climate_normals` in `settings.yaml`) --
   approximate, not official daily normals.
@@ -112,6 +116,9 @@ or overflowing, and logs a warning.
   sighting happened, not when it was added/IDed in iNaturalist) falls after
   the start of the current month -- computed as a set difference between
   all-time species and species observed before this month.
+- The QR code in the corner (linking to the iNaturalist project) is a
+  static image, `render/assets/plant_qr_code.png` -- not generated at
+  render time.
 
 **Business Watch**
 - Purely config-driven: `config/business_hours.yaml`, checked against the
@@ -124,8 +131,9 @@ or overflowing, and logs a warning.
   is a manually-maintained calendar instead -- see SETUP.md).
 - Shows today's birthdays if any exist that day (matched by month/day,
   ignoring year -- works whether or not the calendar event actually
-  recurs). Otherwise shows the box as "Birthday Watch" with up to the next
-  3 upcoming birthdays and their dates.
+  recurs). Otherwise shows the box as "Birthday Watch" with up to the
+  nearest 2 upcoming birthdays within the next 30 days (none shown if
+  nothing falls in that window).
 
 **Game Watch**
 - Phillies: official MLB Stats API -- checks for a live game first, then

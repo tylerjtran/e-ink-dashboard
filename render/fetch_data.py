@@ -534,7 +534,8 @@ def _hhmm_to_minutes(hhmm):
 
 # --------------------------------------------------------------- birthdays --
 
-UPCOMING_BIRTHDAYS_COUNT = 3
+UPCOMING_BIRTHDAYS_COUNT = 2
+UPCOMING_BIRTHDAYS_WINDOW_DAYS = 30
 
 
 def fetch_birthdays(today):
@@ -558,12 +559,13 @@ def fetch_birthdays(today):
 
         today_names = [name for name, m, d in people if (m, d) == (today.month, today.day)]
 
+        window_end = today + timedelta(days=UPCOMING_BIRTHDAYS_WINDOW_DAYS)
         upcoming = []
         for name, m, d in people:
             if (m, d) == (today.month, today.day):
                 continue
             next_date = _next_occurrence(today, m, d)
-            if next_date is not None:
+            if next_date is not None and next_date <= window_end:
                 upcoming.append((next_date, name))
         upcoming.sort(key=lambda pair: pair[0])
         upcoming_list = [
