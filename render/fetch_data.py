@@ -694,11 +694,70 @@ def _espn_opponent_name(comp, team_abbr):
 
 # --------------------------------------------------------------- pie watch --
 
-def fetch_pie_watch():
-    # Placeholder until the Playwright-based scrape of Magpies' site is built.
-    return [
-        "Check back soon — pie list coming shortly",
-    ]
+PIE_CACHE_PATH = HERE / "pie_cache.json"
+
+
+def in_pie_blackout(now):
+    """Sun 2pm through Tue 9am: between weekend pie runs, nothing new to show."""
+    weekday = now.weekday()  # Mon=0 ... Sun=6
+    if weekday == 6 and now.hour >= 14:  # Sunday, 2pm or later
+        return True
+    if weekday == 0:  # Monday, all day
+        return True
+    if weekday == 1 and now.hour < 9:  # Tuesday, before 9am
+        return True
+    return False
+
+
+def current_pie_week_start(now):
+    """The most recent Tuesday 9am at or before `now`."""
+    days_since_tuesday = (now.weekday() - 1) % 7  # Mon=0 -> Tue=1
+    candidate = (now - timedelta(days=days_since_tuesday)).replace(hour=9, minute=0, second=0, microsecond=0)
+    if candidate > now:
+        candidate -= timedelta(days=7)
+    return candidate
+
+
+def fetch_pie_watch(now):
+    if in_pie_blackout(now):
+        return {"message": "Stay tuned for next weekend's pie menu.", "pies": []}
+
+    week_start = current_pie_week_start(now)
+    cache = _load_pie_cache()
+    if cache and datetime.fromisoformat(cache["scraped_at"]) >= week_start:
+        return {"message": None, "pies": cache["pies"]}
+
+    try:
+        from scrape_pie import scrape_pies  # lazy: only needs Playwright when actually scraping
+        pies = scrape_pies()
+    except Exception as e:
+        print(f"[warn] Pie scrape failed: {e}")
+        pies = []
+
+    if pies:
+        _save_pie_cache(pies, now)
+        return {"message": None, "pies": pies}
+
+    if cache:
+        # This week's scrape failed, but a (stale-ish) previous list beats nothing.
+        return {"message": None, "pies": cache["pies"]}
+
+    return {"message": "Check back soon — pie list coming shortly", "pies": []}
+
+
+def _load_pie_cache():
+    if not PIE_CACHE_PATH.exists():
+        return None
+    try:
+        return json.loads(PIE_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _save_pie_cache(pies, now):
+    PIE_CACHE_PATH.write_text(
+        json.dumps({"scraped_at": now.isoformat(), "pies": pies}, indent=2), encoding="utf-8"
+    )
 
 
 # --------------------------------------------------------------- electric --
@@ -736,7 +795,7 @@ def main():
     business_watch = fetch_business_watch(now)
     birthdays = fetch_birthdays(today)
     game_watch = fetch_game_watch(settings, now)
-    pie_watch = fetch_pie_watch()
+    pie_watch = fetch_pie_watch(now)
     electric_note = get_electric_note(settings, now)
 
     # Grab the display timestamp last, so it's as close as possible to the

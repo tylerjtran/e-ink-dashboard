@@ -58,6 +58,6 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Refresh dashboard"
-          file_pattern: "dashboard/latest.png dashboard/latest.bin"
+          file_pattern: "dashboard/latest.png dashboard/latest.bin render/pie_cache.json"
           commit_user_name: "dashboard-bot"
           commit_user_email: "actions@github.com"

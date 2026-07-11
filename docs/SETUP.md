@@ -100,8 +100,19 @@ to test those two, export the same four env vars locally before running it.
 - **Weather/reservoir "normal" comparisons** are rough monthly-average
   tables (`render/config/settings.yaml`), not official daily normals --
   good enough for a ballpark "warmer/lower than normal" line, not precise.
-- **Pie Watch** is a placeholder. The plan is a Playwright scrape of the
-  Magpies site/social -- to be designed later.
+- **Pie Watch** (`render/scrape_pie.py`) scrapes the "Weekend MAPGIES
+  Pre-Orders (Delancey, NY)" category on Magpies' Square Online ordering
+  site. The selector (`.item_card` / `[wrapperid='order-product-title']`)
+  was confirmed against a real DOM inspection of the live page, not
+  guessed -- but it's still worth a first real check, since Square could
+  change their markup at any time and this has never run end-to-end. It
+  fails soft either way (falls back to the last good cached list, or "Check
+  back soon" if there's never been one), so a broken selector won't break
+  the dashboard, it'll just keep showing stale/placeholder content. Check
+  `dashboard/pie_cache.json` and the "Fetch data" step logs after a run
+  between Tue 9am and Sun 2pm (the only window it actually tries to
+  scrape). Only runs once a week -- see `current_pie_week_start()` /
+  `in_pie_blackout()` in `fetch_data.py`.
 - **Game Watch** (Phillies/Eagles/Sixers) hasn't been tested against a real
   live in-progress game yet for any of the three -- worth double checking
   once a real game happens. Eagles/Sixers use ESPN's public site API

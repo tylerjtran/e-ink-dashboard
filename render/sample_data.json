@@ -53,9 +53,12 @@
     "eagles": {"name": "Eagles", "status": "vs Cowboys today at 1pm"},
     "sixers": {"name": "Sixers", "status": null}
   },
-  "pie_watch": [
-    "Scape n pancetta quiche",
-    "Local brown butter blueberry",
-    "Diner-style chocolate-peanut butter"
-  ]
+  "pie_watch": {
+    "message": null,
+    "pies": [
+      "Scape n pancetta quiche",
+      "Local brown butter blueberry",
+      "Diner-style chocolate-peanut butter"
+    ]
+  }
 }
