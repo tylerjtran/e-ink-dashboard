@@ -15,6 +15,7 @@ line) instead of exporting them by hand -- they'll be loaded automatically.
 import argparse
 import json
 import os
+import re
 from datetime import datetime, timedelta, date
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -46,6 +47,11 @@ def fmt_hour12(dt):
     """'6pm'"""
     hour12 = dt.hour % 12 or 12
     return f"{hour12}{dt.strftime('%p').lower()}"
+
+
+def fmt_month_day(d):
+    """'July 14'"""
+    return f"{d:%B} {d.day}"
 
 WMO_CODE_TEXT = {
     0: "Clear", 1: "Mostly Clear", 2: "Partly Cloudy", 3: "Overcast",
@@ -290,15 +296,26 @@ def fetch_usgs_river_temp(settings):
 def fetch_nyc_reservoir(settings):
     cfg = settings["nyc_reservoir"]
     try:
+        # NYC DEP's own reservoir-levels page (not the Socrata "Current
+        # Reservoir Levels" API -- that dataset's field names for the
+        # Cannonsville/Pepacton block don't match their contents, and its
+        # data lags by months. This page is server-rendered and current;
+        # confirmed by hand against https://www.nyc.gov/site/dep/water/reservoir-levels.page.
+        # Needs a browser-like User-Agent or nyc.gov returns 403.
         r = requests.get(
-            cfg["dataset_url"],
-            params={"$order": "neversink_date DESC", "$limit": 1},
+            cfg["dep_page_url"],
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36"},
             timeout=REQUEST_TIMEOUT,
         )
         r.raise_for_status()
-        row = r.json()[0]
-        storage_bg = float(row[cfg["pepacton_storage_field"]])
-        pct_full = round(storage_bg / cfg["pepacton_capacity_billion_gallons"] * 100)
+        m = re.search(
+            r'map-levels-reservoir pepacton">\s*<p><strong>[^<]*</strong><br />'
+            r"Available Capacity: ([\d.]+) BG<br />% of Usable Storage: ([\d.]+)",
+            r.text,
+        )
+        if not m:
+            raise ValueError("Pepacton block not found in DEP page -- page layout may have changed")
+        pct_full = round(float(m.group(2)))
 
         month_key = date.today().strftime("%b").lower()
         normal_pct = cfg["normal_pct_by_month"][month_key]
@@ -387,15 +404,19 @@ def _hhmm_to_minutes(hhmm):
 
 # --------------------------------------------------------------- birthdays --
 
+UPCOMING_BIRTHDAYS_COUNT = 3
+
+
 def fetch_birthdays(today):
     ical_url = os.environ.get("GOOGLE_CALENDAR_ICAL_URL")
     if not ical_url:
-        return []
+        return {"today": [], "upcoming": []}
     try:
         r = requests.get(ical_url, timeout=REQUEST_TIMEOUT)
         r.raise_for_status()
         cal = Calendar.from_ical(r.content)
-        names = []
+
+        people = []  # (name, month, day), one per calendar event
         for component in cal.walk("VEVENT"):
             dtstart = component.get("dtstart")
             if not dtstart:
@@ -403,12 +424,42 @@ def fetch_birthdays(today):
             d = dtstart.dt
             if hasattr(d, "date"):
                 d = d.date()
-            if d.month == today.month and d.day == today.day:
-                names.append(str(component.get("summary")))
-        return names
+            people.append((str(component.get("summary")), d.month, d.day))
+
+        today_names = [name for name, m, d in people if (m, d) == (today.month, today.day)]
+
+        upcoming = []
+        for name, m, d in people:
+            if (m, d) == (today.month, today.day):
+                continue
+            next_date = _next_occurrence(today, m, d)
+            if next_date is not None:
+                upcoming.append((next_date, name))
+        upcoming.sort(key=lambda pair: pair[0])
+        upcoming_list = [
+            {"name": name, "date_str": fmt_month_day(d)} for d, name in upcoming[:UPCOMING_BIRTHDAYS_COUNT]
+        ]
+
+        return {"today": today_names, "upcoming": upcoming_list}
     except Exception as e:
         print(f"[warn] Birthday calendar fetch failed: {e}")
-        return []
+        return {"today": [], "upcoming": []}
+
+
+def _next_occurrence(today, month, day):
+    """Next date (this year or next) that falls on the given month/day.
+
+    Returns None for Feb 29 in a run-up to a non-leap year, rather than
+    guessing which nearby date to show instead.
+    """
+    for year in (today.year, today.year + 1):
+        try:
+            candidate = date(year, month, day)
+        except ValueError:
+            continue
+        if candidate >= today:
+            return candidate
+    return None
 
 
 # ---------------------------------------------------------------- phillies --

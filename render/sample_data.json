@@ -42,7 +42,10 @@
     {"name": "Post Office", "is_open": false},
     {"name": "Transfer Station", "is_open": false}
   ],
-  "birthdays": ["Mom", "Jacob Smith"],
+  "birthdays": {
+    "today": ["Mom", "Jacob Smith"],
+    "upcoming": []
+  },
   "phillies": {
     "line1": "Game vs Braves in progress",
     "line2": "Bottom 6th"

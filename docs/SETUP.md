@@ -83,11 +83,14 @@ to test those two, export the same four env vars locally before running it.
 
 ## 5. Known gaps / things to double check once hardware is running
 
-- **Pepacton Reservoir % full**: NYC's public dataset has field labels that
-  don't match their contents for the Cannonsville/Pepacton reservoirs (see
-  the comment in `render/config/settings.yaml` under `nyc_reservoir`). The
-  value used is inferred, not documented by NYC. Worth a one-time sanity
-  check against https://www.nyc.gov/site/dep/water/reservoir-levels.page.
+- **Pepacton Reservoir % full**: fixed -- this used to come from a
+  mislabeled field in NYC's Socrata "Current Reservoir Levels" dataset and
+  was confirmed wrong (74% vs. the real ~89%). It's now scraped directly
+  from https://www.nyc.gov/site/dep/water/reservoir-levels.page, which
+  server-renders the exact numbers DEP shows the public. That page returns
+  403 without a browser-like `User-Agent` header, which `fetch_nyc_reservoir()`
+  sets -- if DEP ever changes their page layout, the regex in that function
+  will need updating (it fails soft, logging a warning and showing "—").
 - **River temperature**: USGS site 01417000 (East Branch Delaware at
   Downsville) wasn't actively reporting water temperature as of setup, only
   discharge/gage height. The dashboard shows "—°F" when that happens.

@@ -49,18 +49,14 @@ usgs:
   temperature_param_cd: "00010"
 
 nyc_reservoir:
-  dataset_url: "https://data.cityofnewyork.us/resource/zkky-n5j3.json"
-  pepacton_capacity_billion_gallons: 140.2
-  # CAVEAT: the Socrata field names for the Cannonsville/Pepacton block in this
-  # dataset are shifted relative to what they claim to be (verified by comparing
-  # against the self-consistent naming used for the other 4 reservoirs, whose
-  # legacy codes line up correctly with their fieldNames). The field literally
-  # named "pepacton_storage" is actually an elevation reading; the field named
-  # "cannonsville_release" is actually Pepacton's storage volume, in billion
-  # gallons. This mapping is inferred, not documented by NYC -- spot check it
-  # once against https://www.nyc.gov/site/dep/water/reservoir-levels.page after
-  # the dashboard is running.
-  pepacton_storage_field: "cannonsville_release"
+  # Scraped directly from DEP's own reservoir-levels page (server-rendered
+  # HTML, not a separate API call). This replaced an earlier attempt to use
+  # NYC Open Data's "Current Reservoir Levels" Socrata dataset, whose field
+  # names for the Cannonsville/Pepacton block didn't match their contents
+  # and whose data lagged by months -- it produced a confirmed-wrong number
+  # (74% vs. the real ~89%). This page matches the number DEP shows the
+  # public directly, so trust it over any Socrata dataset for this reservoir.
+  dep_page_url: "https://www.nyc.gov/site/dep/water/reservoir-levels.page"
   # Rough seasonal "normal" percent-full curve for the reservoir system, used
   # only for the "Lower/Higher than normal" line. These are ballpark estimates,
   # not an official DEP normals table -- adjust if you find a better source.
