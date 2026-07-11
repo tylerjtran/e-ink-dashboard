@@ -8,6 +8,9 @@ Requires these environment variables (see ../docs/SETUP.md):
     AMBIENT_WEATHER_APPLICATION_KEY
     AMBIENT_WEATHER_MAC
     GOOGLE_CALENDAR_ICAL_URL
+
+For local testing, put these in a gitignored render/.env file (KEY=value per
+line) instead of exporting them by hand -- they'll be loaded automatically.
 """
 import argparse
 import json
@@ -19,10 +22,12 @@ from zoneinfo import ZoneInfo
 import requests
 import yaml
 from astral import moon
+from dotenv import load_dotenv
 from icalendar import Calendar
 
 HERE = Path(__file__).parent
 CONFIG = HERE / "config"
+load_dotenv(HERE / ".env")
 REQUEST_TIMEOUT = 10
 
 
