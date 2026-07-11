@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Kameron:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400..700,0..1,-50..200" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 800px;
+    height: 480px;
+    background: #ffffff;
+    color: #000000;
+    font-family: 'Archivo', sans-serif;
+    /* e-paper has no anti-aliasing benefit and dithers grays anyway;
+       keep strokes crisp for a 1-bit render. */
+    -webkit-font-smoothing: none;
+  }
+
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    font-size: 28px;
+    line-height: 1;
+    vertical-align: middle;
+  }
+
+  #dashboard {
+    width: 800px;
+    height: 480px;
+    display: flex;
+    flex-direction: column;
+    border: 3px solid #000;
+  }
+
+  /* ---------- header ---------- */
+  #header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 10px 16px 8px 16px;
+    border-bottom: 3px solid #000;
+  }
+
+  #header .date-block {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  #header .date {
+    font-family: 'Kameron', serif;
+    font-weight: 700;
+    font-size: 26px;
+  }
+
+  #header .updated {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 400;
+    font-size: 13px;
+    color: #444;
+  }
+
+  #header .electric {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* ---------- grid ---------- */
+  #grid {
+    flex: 1;
+    display: flex;
+  }
+
+  .column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .column + .column {
+    border-left: 3px solid #000;
+  }
+
+  .box {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px;
+    overflow: hidden;
+  }
+
+  .box + .box {
+    border-top: 3px solid #000;
+  }
+
+  .box-title {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .box-body {
+    font-size: 13px;
+    line-height: 1.35;
+    flex: 1;
+  }
+
+  /* ---------- weather ---------- */
+  .weather-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .weather-temp {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 42px;
+    line-height: 1;
+  }
+
+  .weather-line { margin-top: 4px; }
+  .weather-line.muted { color: #333; }
+
+  /* ---------- skygazing ---------- */
+  #skygazing .box-body p { margin-bottom: 2px; }
+
+  /* ---------- river & reservoir ---------- */
+  .rr-row { margin-bottom: 3px; }
+  .rr-label { color: #333; }
+  .rr-value { font-weight: 700; }
+
+  /* ---------- plant watch ---------- */
+  .plant-count {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 40px;
+    line-height: 1;
+  }
+  .plant-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: -2px;
+  }
+  .plant-sub { margin-top: 8px; font-size: 13px; }
+  .plant-sub div { margin-bottom: 2px; }
+
+  /* ---------- business watch ---------- */
+  #business-watch .box { flex: 2; }
+  .biz-list { display: flex; flex-direction: column; gap: 1px; }
+  .biz-row { display: flex; justify-content: space-between; gap: 8px; }
+  .biz-name { }
+  .biz-status { white-space: nowrap; }
+  .biz-status.open { font-weight: 700; }
+  .biz-status.closed { color: #555; }
+
+  /* ---------- birthdays ---------- */
+  #birthdays .box-body { font-size: 14px; }
+
+  /* ---------- phillies ---------- */
+  #phillies .box-body div { margin-bottom: 2px; }
+  #phillies .phillies-line1 { font-weight: 600; }
+
+  /* ---------- pie watch ---------- */
+  #pie-watch ul { list-style: disc; padding-left: 18px; }
+  #pie-watch li { margin-bottom: 3px; }
+</style>
+</head>
+<body>
+  <div id="dashboard">
+
+    <div id="header">
+      <div class="date-block">
+        <span class="date">{{ date_str }}</span>
+        <span class="updated">Updated {{ updated_time_str }}</span>
+      </div>
+      <div class="electric">
+        <span class="material-symbols-outlined">bolt</span>
+        <span>{{ electric_note }}</span>
+      </div>
+    </div>
+
+    <div id="grid">
+
+      <!-- LEFT COLUMN -->
+      <div class="column">
+        <div class="box" id="weather" style="flex: 4;">
+          <div class="box-title">Weather</div>
+          <div class="box-body">
+            <div class="weather-top">
+              <div class="weather-temp">{{ weather.temp_f }}&deg;F</div>
+              <span class="material-symbols-outlined">{{ weather.icon_name }}</span>
+            </div>
+            <div class="weather-line">{{ weather.condition }} &middot; {{ weather.chance_rain_pct }}% chance of rain</div>
+            <div class="weather-line">H: {{ weather.high_f }}&deg;F&nbsp;&nbsp;L: {{ weather.low_f }}&deg;F</div>
+            <div class="weather-line muted">{{ weather.normal_diff_str }}</div>
+            <div class="weather-line muted">{{ weather.indoor_temp_f }}&deg; inside</div>
+            <div class="weather-line muted">{{ weather.burn_ban_str }}</div>
+          </div>
+        </div>
+        <div class="box" id="skygazing" style="flex: 2;">
+          <div class="box-title">Skygazing</div>
+          <div class="box-body">
+            <p>{{ skygazing.conditions_str }} {{ skygazing.moon_phase_str }}</p>
+            {% if skygazing.event_str %}<p>{{ skygazing.event_str }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="box" id="river-reservoir" style="flex: 3;">
+          <div class="box-title">River &amp; Reservoir</div>
+          <div class="box-body">
+            <div class="rr-row"><span class="rr-label">{{ river_reservoir.river_name }}</span> <span class="rr-value">{{ river_reservoir.river_temp_f }}&deg;F</span></div>
+            <div class="rr-row"><span class="rr-label">{{ river_reservoir.reservoir_name }}</span> <span class="rr-value">{{ river_reservoir.reservoir_pct_full }}% full</span></div>
+            <div class="rr-row muted">{{ river_reservoir.reservoir_note }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIDDLE COLUMN -->
+      <div class="column">
+        <div class="box" id="plant-watch" style="flex: 2;">
+          <div class="box-title">Plant Watch</div>
+          <div class="box-body">
+            <div class="plant-count">{{ plant_watch.species_count }}</div>
+            <div class="plant-label">Species identified</div>
+            <div class="plant-sub">
+              <div>{{ plant_watch.native_count }} native species</div>
+              <div>+{{ plant_watch.new_this_month }} new this month</div>
+            </div>
+          </div>
+        </div>
+        <div class="box" id="business-watch" style="flex: 5;">
+          <div class="box-title">Business Watch</div>
+          <div class="box-body">
+            <div class="biz-list">
+              {% for biz in business_watch %}
+              <div class="biz-row">
+                <span class="biz-name">{{ biz.name }}:</span>
+                <span class="biz-status {{ 'open' if biz.is_open else 'closed' }}">{{ 'Open' if biz.is_open else 'Closed' }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="column">
+        <div class="box" id="birthdays" style="flex: 2;">
+          <div class="box-title">Today's Birthdays</div>
+          <div class="box-body">
+            {% if birthdays %}{{ birthdays | join(', ') }}{% else %}No birthdays today.{% endif %}
+          </div>
+        </div>
+        <div class="box" id="phillies" style="flex: 2;">
+          <div class="box-title">Phillies</div>
+          <div class="box-body">
+            <div class="phillies-line1">{{ phillies.line1 }}</div>
+            {% if phillies.line2 %}<div class="phillies-line2">{{ phillies.line2 }}</div>{% endif %}
+          </div>
+        </div>
+        <div class="box" id="pie-watch" style="flex: 3;">
+          <div class="box-title">Pie Watch: Magpies</div>
+          <div class="box-body">
+            <ul>
+              {% for pie in pie_watch %}
+              <li>{{ pie }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

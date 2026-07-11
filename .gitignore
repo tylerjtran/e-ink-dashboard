@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Local secrets (never commit real credentials)
+render/.env
+firmware/secrets.py
+
+# Render output (regenerated locally/by CI; only dashboard/latest.* is committed)
+render/output/*
+!render/output/.gitkeep
+render/data.json
+
+# OS
+.DS_Store
+Thumbs.db

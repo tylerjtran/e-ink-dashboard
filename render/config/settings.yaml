@@ -1,0 +1,86 @@
+location:
+  name: "Downsville, NY"
+  lat: 42.0750
+  lon: -74.9763
+  timezone: "America/New_York"
+
+# Manually toggle during an active NY DEC burn ban. No clean public API was
+# found for this at build time -- flip this by hand until a real source is wired up.
+burn_ban_active: false
+
+electric:
+  peak_days: [mon, tue, wed, thu, fri]
+  peak_start: "16:00"
+  peak_end: "18:00"
+
+ambient_weather:
+  # apiKey / applicationKey / mac come from env vars (GitHub secrets):
+  #   AMBIENT_WEATHER_API_KEY, AMBIENT_WEATHER_APPLICATION_KEY, AMBIENT_WEATHER_MAC
+  base_url: "https://api.ambientweather.net/v1"
+
+open_meteo:
+  base_url: "https://api.open-meteo.com/v1/forecast"
+
+# Approximate monthly climate normals for the Downsville area (proxy: Delhi, NY,
+# ~10 mi away -- closest station with published normals). Used only for the
+# "X warmer/cooler than normal" line. Edit freely if you find better local data.
+climate_normals:
+  jan: { high: 31, low: 11 }
+  feb: { high: 34, low: 12 }
+  mar: { high: 43, low: 22 }
+  apr: { high: 55, low: 32 }
+  may: { high: 67, low: 42 }
+  jun: { high: 75, low: 51 }
+  jul: { high: 80, low: 54 }
+  aug: { high: 78, low: 53 }
+  sep: { high: 70, low: 46 }
+  oct: { high: 60, low: 35 }
+  nov: { high: 47, low: 28 }
+  dec: { high: 35, low: 18 }
+
+usgs:
+  # East Branch Delaware River at Downsville, NY, just below the Pepacton
+  # Reservoir outlet.
+  site_id: "01417000"
+  # Parameter 00010 = water temperature (deg C). NOTE: as of initial setup this
+  # site was not actively reporting temperature (only discharge/gage height) --
+  # verify at https://waterdata.usgs.gov/monitoring-location/01417000 and swap
+  # in a working site if needed.
+  temperature_param_cd: "00010"
+
+nyc_reservoir:
+  dataset_url: "https://data.cityofnewyork.us/resource/zkky-n5j3.json"
+  pepacton_capacity_billion_gallons: 140.2
+  # CAVEAT: the Socrata field names for the Cannonsville/Pepacton block in this
+  # dataset are shifted relative to what they claim to be (verified by comparing
+  # against the self-consistent naming used for the other 4 reservoirs, whose
+  # legacy codes line up correctly with their fieldNames). The field literally
+  # named "pepacton_storage" is actually an elevation reading; the field named
+  # "cannonsville_release" is actually Pepacton's storage volume, in billion
+  # gallons. This mapping is inferred, not documented by NYC -- spot check it
+  # once against https://www.nyc.gov/site/dep/water/reservoir-levels.page after
+  # the dashboard is running.
+  pepacton_storage_field: "cannonsville_release"
+  # Rough seasonal "normal" percent-full curve for the reservoir system, used
+  # only for the "Lower/Higher than normal" line. These are ballpark estimates,
+  # not an official DEP normals table -- adjust if you find a better source.
+  normal_pct_by_month:
+    jan: 85
+    feb: 87
+    mar: 92
+    apr: 95
+    may: 96
+    jun: 92
+    jul: 85
+    aug: 78
+    sep: 73
+    oct: 72
+    nov: 76
+    dec: 82
+
+inaturalist:
+  project_slug: "boy-scout-road"
+
+mlb:
+  team_id: 143  # Philadelphia Phillies
+  team_short_name: "Phillies"

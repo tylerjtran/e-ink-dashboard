@@ -1,0 +1,98 @@
+# Business hours for the BUSINESS WATCH box.
+#
+# Edit this file any time hours change (e.g. seasonally) — no code changes needed.
+# Each business has one entry per day of the week (mon/tue/wed/thu/fri/sat/sun).
+# A day's value is either the string "closed" or a list of "HH:MM-HH:MM" ranges
+# (24-hour clock). Multiple ranges mean split hours, e.g. closed for lunch.
+#
+# Businesses are displayed in the order they appear in this file.
+
+Magpies:
+  mon: closed
+  tue: closed
+  wed: closed
+  thu: closed
+  fri: ["09:00-14:00"]
+  sat: ["09:00-14:00"]
+  sun: ["09:00-14:00"]
+
+Hamden General Store:
+  mon: ["09:30-15:30"]
+  tue: ["09:30-15:30"]
+  wed: ["09:30-15:30"]
+  thu: ["09:30-15:30"]
+  fri: ["09:30-17:30"]
+  sat: ["09:30-17:30"]
+  sun: ["09:30-15:30"]
+
+Tiny's:
+  mon: closed
+  tue: closed
+  wed: closed
+  thu: ["10:00-14:30"]
+  fri: ["10:00-14:30"]
+  sat: ["10:00-14:30"]
+  sun: ["10:00-14:30"]
+
+Hamden Inn:
+  mon: ["17:00-22:00"]
+  tue: closed
+  wed: closed
+  thu: ["17:00-22:00"]
+  fri: ["17:00-23:00"]
+  sat: ["17:00-23:00"]
+  sun: ["17:00-22:00"]
+
+The Junction:
+  mon: ["16:00-23:00"]
+  tue: closed
+  wed: closed
+  thu: ["16:00-23:00"]
+  fri: ["16:00-23:00"]
+  sat: ["16:00-23:00"]
+  sun: ["16:00-23:00"]
+
+Dear Native Grapes:
+  mon: closed
+  tue: closed
+  wed: closed
+  thu: closed
+  fri: closed
+  sat: ["12:00-19:00"]
+  sun: closed
+
+Big M:
+  mon: ["07:00-20:00"]
+  tue: ["07:00-20:00"]
+  wed: ["07:00-20:00"]
+  thu: ["07:00-20:00"]
+  fri: ["07:00-20:00"]
+  sat: ["07:00-20:00"]
+  sun: ["07:00-20:00"]
+
+Dollar General:
+  mon: ["08:00-22:00"]
+  tue: ["08:00-22:00"]
+  wed: ["08:00-22:00"]
+  thu: ["08:00-22:00"]
+  fri: ["08:00-22:00"]
+  sat: ["08:00-22:00"]
+  sun: ["08:00-22:00"]
+
+Post Office:
+  mon: ["09:00-13:00", "14:00-16:45"]
+  tue: ["09:00-13:00", "14:00-16:45"]
+  wed: ["09:00-13:00", "14:00-16:45"]
+  thu: ["09:00-13:00", "14:00-16:45"]
+  fri: ["09:00-13:00", "14:00-16:45"]
+  sat: ["09:00-11:30"]
+  sun: closed
+
+Transfer Station:
+  mon: closed
+  tue: ["08:30-16:30"]
+  wed: ["08:30-16:30"]
+  thu: ["08:30-16:30"]
+  fri: ["08:30-16:30"]
+  sat: ["08:30-16:30"]
+  sun: ["08:30-16:00"]

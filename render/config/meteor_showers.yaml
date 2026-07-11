@@ -1,0 +1,26 @@
+# Known annual meteor shower peaks (approximate -- these shift by a day or two
+# year to year; close enough for a "peaks in N days" heads-up). Add/edit freely.
+- name: "Quadrantids"
+  peak_month: 1
+  peak_day: 3
+- name: "Lyrids"
+  peak_month: 4
+  peak_day: 22
+- name: "Eta Aquariids"
+  peak_month: 5
+  peak_day: 5
+- name: "Perseids"
+  peak_month: 8
+  peak_day: 12
+- name: "Orionids"
+  peak_month: 10
+  peak_day: 21
+- name: "Leonids"
+  peak_month: 11
+  peak_day: 17
+- name: "Geminids"
+  peak_month: 12
+  peak_day: 13
+- name: "Ursids"
+  peak_month: 12
+  peak_day: 22

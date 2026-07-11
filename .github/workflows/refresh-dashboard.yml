@@ -1,0 +1,63 @@
+name: Refresh dashboard
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub Actions cron isn't guaranteed to fire exactly
+    # on time (it can slip several minutes under load), so treat the 15-min
+    # cadence as a target, not a guarantee.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-dashboard
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        working-directory: render
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Fetch data
+        working-directory: render
+        env:
+          AMBIENT_WEATHER_API_KEY: ${{ secrets.AMBIENT_WEATHER_API_KEY }}
+          AMBIENT_WEATHER_APPLICATION_KEY: ${{ secrets.AMBIENT_WEATHER_APPLICATION_KEY }}
+          AMBIENT_WEATHER_MAC: ${{ secrets.AMBIENT_WEATHER_MAC }}
+          GOOGLE_CALENDAR_ICAL_URL: ${{ secrets.GOOGLE_CALENDAR_ICAL_URL }}
+        run: python fetch_data.py --out data.json
+
+      - name: Render dashboard image
+        working-directory: render
+        run: python render.py --data data.json --out output/dashboard.png
+
+      - name: Convert to e-paper buffer
+        working-directory: render
+        run: python convert.py --in output/dashboard.png --out output/dashboard.bin
+
+      - name: Publish output
+        run: |
+          mkdir -p dashboard
+          cp render/output/dashboard.png dashboard/latest.png
+          cp render/output/dashboard.bin dashboard/latest.bin
+
+      - name: Commit updated dashboard
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Refresh dashboard"
+          file_pattern: "dashboard/latest.png dashboard/latest.bin"
+          commit_user_name: "dashboard-bot"
+          commit_user_email: "actions@github.com"

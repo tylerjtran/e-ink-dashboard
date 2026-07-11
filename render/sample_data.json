@@ -1,0 +1,55 @@
+{
+  "date_str": "Friday, July 10",
+  "updated_time_str": "6:05pm",
+  "electric_note": "Off-peak electric",
+  "weather": {
+    "temp_f": 72,
+    "condition": "Partly Cloudy",
+    "chance_rain_pct": 20,
+    "high_f": 78,
+    "low_f": 61,
+    "normal_diff_str": "8° warmer than normal",
+    "indoor_temp_f": 68,
+    "burn_ban_str": "No burn ban",
+    "icon_name": "partly_cloudy_day"
+  },
+  "skygazing": {
+    "conditions_str": "Good conditions.",
+    "moon_phase_str": "Full moon.",
+    "event_str": "Perseids peak in 3 days."
+  },
+  "river_reservoir": {
+    "river_name": "East Branch of the Delaware",
+    "river_temp_f": 64,
+    "reservoir_name": "Pepacton Reservoir",
+    "reservoir_pct_full": 87,
+    "reservoir_note": "Lower than normal"
+  },
+  "plant_watch": {
+    "species_count": 61,
+    "native_count": 33,
+    "new_this_month": 4
+  },
+  "business_watch": [
+    {"name": "Magpies", "is_open": false},
+    {"name": "Hamden General Store", "is_open": false},
+    {"name": "Tiny's", "is_open": false},
+    {"name": "Hamden Inn", "is_open": true},
+    {"name": "The Junction", "is_open": true},
+    {"name": "Dear Native Grapes", "is_open": false},
+    {"name": "Big M", "is_open": true},
+    {"name": "Dollar General", "is_open": true},
+    {"name": "Post Office", "is_open": false},
+    {"name": "Transfer Station", "is_open": false}
+  ],
+  "birthdays": ["Mom", "Jacob Smith"],
+  "phillies": {
+    "line1": "Game vs Braves in progress",
+    "line2": "Bottom 6th"
+  },
+  "pie_watch": [
+    "Scape n pancetta quiche",
+    "Local brown butter blueberry",
+    "Diner-style chocolate-peanut butter"
+  ]
+}
