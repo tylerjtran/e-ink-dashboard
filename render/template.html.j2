@@ -191,6 +191,16 @@
   /* ---------- pie watch ---------- */
   #pie-watch ul { list-style: disc; padding-left: 18px; }
   #pie-watch li { margin-bottom: 3px; }
+
+  /* Vertically center the body content (not the title) -- these two boxes'
+     text length varies a lot run to run, and top-aligning it left large,
+     lopsided gaps at the bottom when the content was short. */
+  #game-watch .box-body,
+  #pie-watch .box-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
 </style>
 </head>
 <body>
