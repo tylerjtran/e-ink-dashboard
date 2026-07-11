@@ -21,6 +21,7 @@ def render_html(data: dict) -> str:
 
 
 def html_to_png(html: str, out_path: Path) -> None:
+    out_path = out_path.resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     html_path = out_path.with_suffix(".html")
     html_path.write_text(html, encoding="utf-8")
