@@ -83,3 +83,11 @@ inaturalist:
 mlb:
   team_id: 143  # Philadelphia Phillies
   team_short_name: "Phillies"
+
+nfl:
+  team_abbr: "phi"  # Philadelphia Eagles, per ESPN's site API
+  team_name: "Eagles"
+
+nba:
+  team_abbr: "phi"  # Philadelphia 76ers, per ESPN's site API
+  team_name: "Sixers"

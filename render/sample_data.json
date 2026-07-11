@@ -48,9 +48,10 @@
     "today": ["Mom", "Jacob Smith"],
     "upcoming": []
   },
-  "phillies": {
-    "line1": "Game vs Braves in progress",
-    "line2": "Bottom 6th"
+  "game_watch": {
+    "phillies": {"name": "Phillies", "status": "vs Braves in progress, bottom of 6th"},
+    "eagles": {"name": "Eagles", "status": "vs Cowboys today at 1pm"},
+    "sixers": {"name": "Sixers", "status": null}
   },
   "pie_watch": [
     "Scape n pancetta quiche",

@@ -36,8 +36,6 @@
     height: 480px;
     display: flex;
     flex-direction: column;
-    border: 3px solid #000;
-    border-radius: 14px;
     padding: 10px;
     gap: 8px;
   }
@@ -179,9 +177,8 @@
   /* ---------- birthdays ---------- */
   #birthdays .box-body { font-size: 14px; }
 
-  /* ---------- phillies ---------- */
-  #phillies .box-body div { margin-bottom: 2px; }
-  #phillies .phillies-line1 { font-weight: 600; }
+  /* ---------- game watch ---------- */
+  .game-row { margin-bottom: 4px; }
 
   /* ---------- pie watch ---------- */
   #pie-watch ul { list-style: disc; padding-left: 18px; }
@@ -214,7 +211,7 @@
               <span class="material-symbols-outlined">{{ weather.icon_name }}</span>
             </div>
             <div class="weather-line">{{ weather.condition }} &middot; {{ weather.chance_rain_pct }}% chance of rain</div>
-            <div class="weather-line">H: {{ weather.high_f }}&deg;F&nbsp;&nbsp;L: {{ weather.low_f }}&deg;F{% if weather.philly_diff_str %} &middot; {{ weather.philly_diff_str }}{% endif %}</div>
+            <div class="weather-line">H: {{ weather.high_f }}&deg;&nbsp;&nbsp;L: {{ weather.low_f }}&deg;{% if weather.philly_diff_str %} &middot; {{ weather.philly_diff_str }}{% endif %}</div>
             <div class="weather-line muted">{{ weather.normal_diff_str }}</div>
             <div class="weather-line muted">{{ weather.indoor_temp_f }}&deg; inside &middot; {{ weather.burn_ban_str }}</div>
           </div>
@@ -267,7 +264,7 @@
 
       <!-- RIGHT COLUMN -->
       <div class="column">
-        <div class="box" id="birthdays" style="flex: 2;">
+        <div class="box" id="birthdays" style="flex: 1.5;">
           {% if birthdays.today %}
           <div class="box-title">Today's Birthdays</div>
           <div class="box-body">{{ birthdays.today | join(', ') }}</div>
@@ -282,11 +279,12 @@
           </div>
           {% endif %}
         </div>
-        <div class="box" id="phillies" style="flex: 2;">
-          <div class="box-title">Phillies</div>
+        <div class="box" id="game-watch" style="flex: 3.5;">
+          <div class="box-title">Game Watch</div>
           <div class="box-body">
-            <div class="phillies-line1">{{ phillies.line1 }}</div>
-            {% if phillies.line2 %}<div class="phillies-line2">{{ phillies.line2 }}</div>{% endif %}
+            {% for g in [game_watch.phillies, game_watch.eagles, game_watch.sixers] %}
+            <div class="game-row"><strong>{{ g.name }}</strong>{% if g.status %} {{ g.status }}{% else %}: &ndash;{% endif %}</div>
+            {% endfor %}
           </div>
         </div>
         <div class="box" id="pie-watch" style="flex: 3;">

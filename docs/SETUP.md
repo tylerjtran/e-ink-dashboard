@@ -102,6 +102,9 @@ to test those two, export the same four env vars locally before running it.
   good enough for a ballpark "warmer/lower than normal" line, not precise.
 - **Pie Watch** is a placeholder. The plan is a Playwright scrape of the
   Magpies site/social -- to be designed later.
-- **Phillies "Final" score line** hasn't been tested against a live
-  in-progress game or a completed one yet -- worth double checking the MLB
-  Stats API response shape once a real game happens.
+- **Game Watch** (Phillies/Eagles/Sixers) hasn't been tested against a real
+  live in-progress game yet for any of the three -- worth double checking
+  once a real game happens. Eagles/Sixers use ESPN's public site API
+  (`site.api.espn.com`), which is unauthenticated and free but undocumented/
+  unofficial -- it could change shape without notice. Phillies still uses
+  the official MLB Stats API.

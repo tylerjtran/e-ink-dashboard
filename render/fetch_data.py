@@ -558,79 +558,29 @@ def _next_occurrence(today, month, day):
     return None
 
 
-# ---------------------------------------------------------------- phillies --
+# --------------------------------------------------------------- game watch --
 
-def fetch_phillies(settings, now):
-    team_id = settings["mlb"]["team_id"]
-    short_name = settings["mlb"]["team_short_name"]
-    today_str = now.strftime("%Y-%m-%d")
-
-    try:
-        r = requests.get(
-            "https://statsapi.mlb.com/api/v1/schedule",
-            params={"sportId": 1, "teamId": team_id, "date": today_str},
-            timeout=REQUEST_TIMEOUT,
-        )
-        r.raise_for_status()
-        games = r.json().get("dates", [])
-        games = games[0]["games"] if games else []
-
-        if games:
-            game = games[0]
-            state = game["status"]["abstractGameState"]
-            opponent = _opponent_name(game, team_id)
-            if state == "Live":
-                return _live_phillies_line(game, opponent)
-            if state == "Final":
-                return _final_phillies_line(game, opponent, team_id, short_name)
-            # Preview / scheduled later today
-            game_time = _format_game_time(game["gameDate"], settings["location"]["timezone"])
-            return {"line1": f"Next game vs {opponent} today at {game_time}", "line2": None}
-
-        return _next_scheduled_game(settings, now, team_id)
-    except Exception as e:
-        print(f"[warn] MLB Stats API fetch failed: {e}")
-        return {"line1": "—", "line2": None}
+def fetch_game_watch(settings, now):
+    tz_name = settings["location"]["timezone"]
+    return {
+        "phillies": {"name": settings["mlb"]["team_short_name"], "status": fetch_mlb_game(settings, now)},
+        "eagles": {
+            "name": settings["nfl"]["team_name"],
+            "status": fetch_espn_game("football", "nfl", settings["nfl"]["team_abbr"], now, tz_name),
+        },
+        "sixers": {
+            "name": settings["nba"]["team_name"],
+            "status": fetch_espn_game("basketball", "nba", settings["nba"]["team_abbr"], now, tz_name),
+        },
+    }
 
 
-def _opponent_name(game, team_id):
-    teams = game["teams"]
-    other = teams["away"] if teams["home"]["team"]["id"] == team_id else teams["home"]
-    return other["team"]["name"].split()[-1]  # e.g. "Atlanta Braves" -> "Braves"
-
-
-def _format_game_time(game_date_utc, tz_name):
-    dt = datetime.fromisoformat(game_date_utc.replace("Z", "+00:00")).astimezone(ZoneInfo(tz_name))
-    return fmt_time12(dt)
-
-
-def _live_phillies_line(game, opponent):
-    try:
-        game_pk = game["gamePk"]
-        r = requests.get(
-            f"https://statsapi.mlb.com/api/v1.1/game/{game_pk}/feed/live",
-            timeout=REQUEST_TIMEOUT,
-        )
-        r.raise_for_status()
-        linescore = r.json()["liveData"]["linescore"]
-        inning = linescore["currentInning"]
-        state = linescore["inningState"]  # "Top", "Bottom", "Middle", "End"
-        return {
-            "line1": f"Game vs {opponent} in progress",
-            "line2": f"{state} {_ordinal(inning)}",
-        }
-    except Exception as e:
-        print(f"[warn] MLB live feed fetch failed: {e}")
-        return {"line1": f"Game vs {opponent} in progress", "line2": None}
-
-
-def _final_phillies_line(game, opponent, team_id, short_name):
-    teams = game["teams"]
-    home, away = teams["home"], teams["away"]
-    is_home = home["team"]["id"] == team_id
-    us = home if is_home else away
-    them = away if is_home else home
-    return {"line1": f"Final: {short_name} {us['score']}, {opponent} {them['score']}", "line2": None}
+def fmt_relative_game_date(game_date, today):
+    if game_date == today:
+        return "today"
+    if game_date == today + timedelta(days=1):
+        return "tomorrow"
+    return f"{game_date:%B} {game_date.day}"
 
 
 def _ordinal(n):
@@ -641,24 +591,105 @@ def _ordinal(n):
     return f"{n}{suffix}"
 
 
-def _next_scheduled_game(settings, now, team_id):
-    end = (now + timedelta(days=21)).strftime("%Y-%m-%d")
-    r = requests.get(
-        "https://statsapi.mlb.com/api/v1/schedule",
-        params={"sportId": 1, "teamId": team_id, "startDate": now.strftime("%Y-%m-%d"), "endDate": end},
-        timeout=REQUEST_TIMEOUT,
-    )
-    r.raise_for_status()
-    dates = r.json().get("dates", [])
-    if not dates:
-        return {"line1": "See you next season.", "line2": None}
-    game = dates[0]["games"][0]
-    opponent = _opponent_name(game, team_id)
-    game_dt = datetime.fromisoformat(game["gameDate"].replace("Z", "+00:00")).astimezone(
-        ZoneInfo(settings["location"]["timezone"])
-    )
-    game_time = fmt_time12(game_dt)
-    return {"line1": f"Next game vs {opponent} {game_dt:%B} {game_dt.day} at {game_time}", "line2": None}
+def fetch_mlb_game(settings, now):
+    team_id = settings["mlb"]["team_id"]
+    tz_name = settings["location"]["timezone"]
+    try:
+        r = requests.get(
+            "https://statsapi.mlb.com/api/v1/schedule",
+            params={
+                "sportId": 1,
+                "teamId": team_id,
+                "startDate": now.strftime("%Y-%m-%d"),
+                "endDate": (now + timedelta(days=30)).strftime("%Y-%m-%d"),
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
+        r.raise_for_status()
+        games = [g for d in r.json().get("dates", []) for g in d["games"]]
+    except Exception as e:
+        print(f"[warn] MLB schedule fetch failed: {e}")
+        return None
+
+    for game in games:
+        if game["status"]["abstractGameState"] == "Live":
+            return _mlb_live_status(game, _mlb_opponent_name(game, team_id))
+
+    for game in games:
+        if game["status"]["abstractGameState"] != "Preview":
+            continue
+        opponent = _mlb_opponent_name(game, team_id)
+        game_dt = datetime.fromisoformat(game["gameDate"].replace("Z", "+00:00")).astimezone(ZoneInfo(tz_name))
+        return f"vs {opponent} {fmt_relative_game_date(game_dt.date(), now.date())} at {fmt_time12(game_dt)}"
+
+    return None
+
+
+def _mlb_opponent_name(game, team_id):
+    teams = game["teams"]
+    other = teams["away"] if teams["home"]["team"]["id"] == team_id else teams["home"]
+    return other["team"]["name"].split()[-1]  # e.g. "Atlanta Braves" -> "Braves"
+
+
+def _mlb_live_status(game, opponent):
+    try:
+        r = requests.get(
+            f"https://statsapi.mlb.com/api/v1.1/game/{game['gamePk']}/feed/live",
+            timeout=REQUEST_TIMEOUT,
+        )
+        r.raise_for_status()
+        linescore = r.json()["liveData"]["linescore"]
+        inning_state = linescore["inningState"].lower()  # "top", "bottom", "middle", "end"
+        return f"vs {opponent} in progress, {inning_state} of {_ordinal(linescore['currentInning'])}"
+    except Exception as e:
+        print(f"[warn] MLB live feed fetch failed: {e}")
+        return f"vs {opponent} in progress"
+
+
+def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name):
+    try:
+        r = requests.get(
+            f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league_path}/teams/{team_abbr}/schedule",
+            timeout=REQUEST_TIMEOUT,
+        )
+        r.raise_for_status()
+        events = r.json().get("events", [])
+    except Exception as e:
+        print(f"[warn] ESPN {league_path} schedule fetch failed: {e}")
+        return None
+
+    today = now.date()
+    upcoming = []
+    for event in events:
+        comp = event["competitions"][0]
+        status = comp["status"]
+        state = status["type"]["state"]  # "pre", "in", "post"
+        opponent = _espn_opponent_name(comp, team_abbr)
+
+        if state == "in":
+            period = status.get("period")
+            if period:
+                return f"vs {opponent} in progress, {_ordinal(period)} quarter"
+            return f"vs {opponent} in progress"
+
+        if state == "pre":
+            event_dt = datetime.fromisoformat(event["date"].replace("Z", "+00:00")).astimezone(ZoneInfo(tz_name))
+            if event_dt.date() >= today:
+                upcoming.append((event_dt, opponent))
+
+    if not upcoming:
+        return None
+    upcoming.sort(key=lambda pair: pair[0])
+    event_dt, opponent = upcoming[0]
+    return f"vs {opponent} {fmt_relative_game_date(event_dt.date(), today)} at {fmt_time12(event_dt)}"
+
+
+def _espn_opponent_name(comp, team_abbr):
+    for competitor in comp["competitors"]:
+        team = competitor["team"]
+        if team["abbreviation"].lower() != team_abbr.lower():
+            return team.get("nickname") or team.get("shortDisplayName") or team.get("displayName", "TBD")
+    return "TBD"
 
 
 # --------------------------------------------------------------- pie watch --
@@ -704,7 +735,7 @@ def main():
     plant_watch = fetch_plant_watch(settings)
     business_watch = fetch_business_watch(now)
     birthdays = fetch_birthdays(today)
-    phillies = fetch_phillies(settings, now)
+    game_watch = fetch_game_watch(settings, now)
     pie_watch = fetch_pie_watch()
     electric_note = get_electric_note(settings, now)
 
@@ -724,7 +755,7 @@ def main():
         "plant_watch": plant_watch,
         "business_watch": business_watch,
         "birthdays": birthdays,
-        "phillies": phillies,
+        "game_watch": game_watch,
         "pie_watch": pie_watch,
     }
 
