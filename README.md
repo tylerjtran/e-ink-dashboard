@@ -7,13 +7,17 @@ game status, and a pie-watch box for the local bakery.
 
 ## How it works
 
-- **GitHub Actions** (`.github/workflows/refresh-dashboard.yml`) runs every
-  ~15 minutes: fetches data from various APIs, renders it to an 800x480 PNG,
-  converts that to the raw byte format the display wants, and commits both
-  to `dashboard/`.
+- **GitHub Actions** (`.github/workflows/refresh-dashboard.yml`) fetches
+  data from various APIs, renders it to an 800x480 PNG, converts that to the
+  raw byte format the display wants, and commits both to `dashboard/`.
+  Meant to run every ~15 minutes, but GitHub's own scheduling for Actions is
+  best-effort and gets throttled to roughly hourly in practice -- see
+  SETUP.md for an optional external trigger to get real 15-minute updates.
 - **Raspberry Pi Pico 2 W** (`firmware/`) connects to Wi-Fi and downloads
-  `dashboard/latest.bin` on the same ~15 minute cadence, pushing it straight
-  to a Waveshare 7.5" e-paper panel. It does no rendering of its own.
+  `dashboard/latest.bin` on its own independent 15-minute timer, pushing it
+  straight to a Waveshare 7.5" e-paper panel. It does no rendering of its
+  own, and its timer isn't synced to the Action's -- it just checks
+  whatever's currently committed each time it wakes up.
 
 See [docs/SETUP.md](docs/SETUP.md) for how to configure secrets, edit
 content like business hours, and flash the Pico -- including known gaps and
@@ -146,6 +150,14 @@ or overflowing, and logs a warning.
   wording says "quarter" for football/basketball, "period" for hockey.
 - Any team shows as "Team: –" if no live or upcoming game is found (e.g.
   NBA/NFL off-season before the next schedule is published).
+- Cached per team in `render/game_watch_cache.json` (committed by the
+  Action, like the pie cache): the first check each day determines whether
+  that team has a game today (live or scheduled). If not, later checks that
+  same day reuse the cached result instead of re-fetching -- the answer
+  ("next game is in 3 days") won't change between 15-minute runs anyway. If
+  there is a game today, every run re-fetches so live status (inning,
+  quarter, period) stays current. A failed fetch falls back to that team's
+  cached result from earlier today rather than going blank.
 
 **Pie Watch**
 - Blackout window (Sun 2pm - Tue 9am): shows a static "Stay tuned..."

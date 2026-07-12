@@ -596,25 +596,84 @@ def _next_occurrence(today, month, day):
 
 # --------------------------------------------------------------- game watch --
 
+GAME_WATCH_CACHE_PATH = HERE / "game_watch_cache.json"
+
+
 def fetch_game_watch(settings, now):
+    # Each team's schedule barely ever changes within a day when nothing's
+    # on today -- re-fetching every ~15 min in that case is just needless
+    # load on APIs that are either unofficial (ESPN) or otherwise worth
+    # being a good citizen of. So: the first check of the day per team
+    # decides whether there's a game today; if not, later checks that same
+    # day reuse the cached result instead of re-fetching. If there IS a
+    # game today (scheduled or live), keep checking every run so live
+    # status (inning/quarter/period) stays fresh.
     tz_name = settings["location"]["timezone"]
-    return {
-        "phillies": {"name": settings["mlb"]["team_short_name"], "status": fetch_mlb_game(settings, now)},
-        "eagles": {
-            "name": settings["nfl"]["team_name"],
-            "status": fetch_espn_game("football", "nfl", settings["nfl"]["team_abbr"], now, tz_name),
-        },
-        "sixers": {
-            "name": settings["nba"]["team_name"],
-            "status": fetch_espn_game("basketball", "nba", settings["nba"]["team_abbr"], now, tz_name),
-        },
-        "flyers": {
-            "name": settings["nhl"]["team_name"],
-            "status": fetch_espn_game(
+    today_str = now.date().isoformat()
+    cache = _load_game_watch_cache()
+
+    result = {
+        "phillies": _fetch_team_game_cached(
+            cache, today_str, "phillies", settings["mlb"]["team_short_name"], lambda: fetch_mlb_game(settings, now)
+        ),
+        "eagles": _fetch_team_game_cached(
+            cache,
+            today_str,
+            "eagles",
+            settings["nfl"]["team_name"],
+            lambda: fetch_espn_game("football", "nfl", settings["nfl"]["team_abbr"], now, tz_name),
+        ),
+        "sixers": _fetch_team_game_cached(
+            cache,
+            today_str,
+            "sixers",
+            settings["nba"]["team_name"],
+            lambda: fetch_espn_game("basketball", "nba", settings["nba"]["team_abbr"], now, tz_name),
+        ),
+        "flyers": _fetch_team_game_cached(
+            cache,
+            today_str,
+            "flyers",
+            settings["nhl"]["team_name"],
+            lambda: fetch_espn_game(
                 "hockey", "nhl", settings["nhl"]["team_abbr"], now, tz_name, period_label="period"
             ),
-        },
+        ),
     }
+
+    _save_game_watch_cache(cache)
+    return result
+
+
+def _fetch_team_game_cached(cache, today_str, cache_key, name, fetch_fn):
+    cached = cache.get(cache_key)
+    if cached and cached.get("date") == today_str and not cached.get("has_game_today"):
+        return {"name": name, "status": cached.get("status")}
+
+    try:
+        status, has_game_today = fetch_fn()
+        cache[cache_key] = {"date": today_str, "status": status, "has_game_today": has_game_today}
+        return {"name": name, "status": status}
+    except Exception as e:
+        print(f"[warn] {cache_key} game fetch failed: {e}")
+        if cached and cached.get("date") == today_str:
+            # Had a good check earlier today -- reuse it rather than
+            # blanking the box over one transient failure.
+            return {"name": name, "status": cached.get("status")}
+        return {"name": name, "status": None}
+
+
+def _load_game_watch_cache():
+    if not GAME_WATCH_CACHE_PATH.exists():
+        return {}
+    try:
+        return json.loads(GAME_WATCH_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_game_watch_cache(cache):
+    GAME_WATCH_CACHE_PATH.write_text(json.dumps(cache, indent=2), encoding="utf-8")
 
 
 def fmt_relative_game_date(game_date, today):
@@ -634,37 +693,38 @@ def _ordinal(n):
 
 
 def fetch_mlb_game(settings, now):
+    """Returns (status_str_or_None, has_game_today). Raises on fetch failure
+    (schedule request itself) -- the caller (_fetch_team_game_cached)
+    decides whether to fall back to a cached result."""
     team_id = settings["mlb"]["team_id"]
     tz_name = settings["location"]["timezone"]
-    try:
-        r = requests.get(
-            "https://statsapi.mlb.com/api/v1/schedule",
-            params={
-                "sportId": 1,
-                "teamId": team_id,
-                "startDate": now.strftime("%Y-%m-%d"),
-                "endDate": (now + timedelta(days=30)).strftime("%Y-%m-%d"),
-            },
-            timeout=REQUEST_TIMEOUT,
-        )
-        r.raise_for_status()
-        games = [g for d in r.json().get("dates", []) for g in d["games"]]
-    except Exception as e:
-        print(f"[warn] MLB schedule fetch failed: {e}")
-        return None
+    r = requests.get(
+        "https://statsapi.mlb.com/api/v1/schedule",
+        params={
+            "sportId": 1,
+            "teamId": team_id,
+            "startDate": now.strftime("%Y-%m-%d"),
+            "endDate": (now + timedelta(days=30)).strftime("%Y-%m-%d"),
+        },
+        timeout=REQUEST_TIMEOUT,
+    )
+    r.raise_for_status()
+    games = [g for d in r.json().get("dates", []) for g in d["games"]]
 
     for game in games:
         if game["status"]["abstractGameState"] == "Live":
-            return _mlb_live_status(game, _mlb_opponent_name(game, team_id))
+            return _mlb_live_status(game, _mlb_opponent_name(game, team_id)), True
 
     for game in games:
         if game["status"]["abstractGameState"] != "Preview":
             continue
         opponent = _mlb_opponent_name(game, team_id)
         game_dt = datetime.fromisoformat(game["gameDate"].replace("Z", "+00:00")).astimezone(ZoneInfo(tz_name))
-        return f"vs {opponent} {fmt_relative_game_date(game_dt.date(), now.date())} at {fmt_time12(game_dt)}"
+        is_today = game_dt.date() == now.date()
+        status = f"vs {opponent} {fmt_relative_game_date(game_dt.date(), now.date())} at {fmt_time12(game_dt)}"
+        return status, is_today
 
-    return None
+    return None, False
 
 
 def _mlb_opponent_name(game, team_id):
@@ -689,16 +749,15 @@ def _mlb_live_status(game, opponent):
 
 
 def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name, period_label="quarter"):
-    try:
-        r = requests.get(
-            f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league_path}/teams/{team_abbr}/schedule",
-            timeout=REQUEST_TIMEOUT,
-        )
-        r.raise_for_status()
-        events = r.json().get("events", [])
-    except Exception as e:
-        print(f"[warn] ESPN {league_path} schedule fetch failed: {e}")
-        return None
+    """Returns (status_str_or_None, has_game_today). Raises on fetch failure
+    (schedule request itself) -- the caller (_fetch_team_game_cached)
+    decides whether to fall back to a cached result."""
+    r = requests.get(
+        f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league_path}/teams/{team_abbr}/schedule",
+        timeout=REQUEST_TIMEOUT,
+    )
+    r.raise_for_status()
+    events = r.json().get("events", [])
 
     today = now.date()
     upcoming = []
@@ -711,8 +770,8 @@ def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name, period_lab
         if state == "in":
             period = status.get("period")
             if period:
-                return f"vs {opponent} in progress, {_ordinal(period)} {period_label}"
-            return f"vs {opponent} in progress"
+                return f"vs {opponent} in progress, {_ordinal(period)} {period_label}", True
+            return f"vs {opponent} in progress", True
 
         if state == "pre":
             event_dt = datetime.fromisoformat(event["date"].replace("Z", "+00:00")).astimezone(ZoneInfo(tz_name))
@@ -720,10 +779,11 @@ def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name, period_lab
                 upcoming.append((event_dt, opponent))
 
     if not upcoming:
-        return None
+        return None, False
     upcoming.sort(key=lambda pair: pair[0])
     event_dt, opponent = upcoming[0]
-    return f"vs {opponent} {fmt_relative_game_date(event_dt.date(), today)} at {fmt_time12(event_dt)}"
+    status_str = f"vs {opponent} {fmt_relative_game_date(event_dt.date(), today)} at {fmt_time12(event_dt)}"
+    return status_str, event_dt.date() == today
 
 
 def _espn_opponent_name(comp, team_abbr):

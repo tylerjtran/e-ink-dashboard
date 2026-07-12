@@ -2,12 +2,15 @@
 
 ## How this works
 
-1. `.github/workflows/refresh-dashboard.yml` runs every ~15 minutes. It pulls
-   data from a handful of APIs (`render/fetch_data.py`), renders it into an
-   800x480 image (`render/render.py`), converts that to the raw 1-bit buffer
-   format the e-paper panel wants (`render/convert.py`), and commits the
-   result to `dashboard/latest.bin` (and `latest.png`, for previewing in a
-   browser).
+1. `.github/workflows/refresh-dashboard.yml` pulls data from a handful of
+   APIs (`render/fetch_data.py`), renders it into an 800x480 image
+   (`render/render.py`), converts that to the raw 1-bit buffer format the
+   e-paper panel wants (`render/convert.py`), and commits the result to
+   `dashboard/latest.bin` (and `latest.png`, for previewing in a browser).
+   It's *meant* to run every ~15 minutes, but GitHub's own `schedule`
+   trigger for Actions is best-effort and gets throttled to roughly hourly
+   in practice, regardless of the cron expression -- see section 2 below if
+   you want real 15-minute updates.
 2. The Pico 2 W (`firmware/main.py`) connects to Wi-Fi, downloads
    `dashboard/latest.bin` over HTTPS, and pushes the bytes straight into the
    e-paper display. It does no rendering itself.
@@ -31,7 +34,48 @@ secret**. Add these four:
 Until these are set, the dashboard still renders: weather falls back to
 Open-Meteo only (no indoor temp), and birthdays shows nothing.
 
-## 2. Editing content that changes over time
+## 2. Getting real 15-minute refreshes (optional)
+
+GitHub's own `schedule` trigger is best-effort -- in practice it gets
+throttled to roughly once an hour on repos like this one, no matter what
+the cron expression in `refresh-dashboard.yml` says. This is a GitHub
+platform limitation, not something fixable in the workflow file itself. If
+~hourly updates are fine, skip this whole section -- the dashboard still
+refreshes on its own via that fallback schedule, no setup required.
+
+For real 15-minute updates, an external service needs to call GitHub's API
+to trigger the workflow (`workflow_dispatch`) on its own schedule, bypassing
+GitHub's throttled cron entirely:
+
+1. Create a **fine-grained GitHub personal access token**: github.com >
+   Settings > Developer settings > Personal access tokens > Fine-grained
+   tokens > Generate new token.
+   - Repository access: **Only select repositories** > this repo. Don't
+     grant access to any other repo.
+   - Permissions: **Actions: Read and write**. Nothing else needed.
+   - Set an expiration (e.g. 1 year) rather than "No expiration".
+   - Copy the token somewhere safe -- GitHub only shows it once.
+2. Sign up for a free scheduling service that can make an authenticated
+   HTTP request on a schedule -- e.g. [cron-job.org](https://cron-job.org)
+   (free tier supports intervals down to 1 minute). Set up a job:
+   - URL: `https://api.github.com/repos/tylerjtran/e-ink-dashboard/actions/workflows/refresh-dashboard.yml/dispatches`
+   - Method: `POST`
+   - Headers: `Authorization: Bearer <your token>`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`
+   - Body: `{"ref": "main"}`
+   - Schedule: every 15 minutes
+3. Trigger it once manually (most services have a "run now" / "test"
+   button) and confirm a new run shows up in the repo's **Actions** tab
+   within a few seconds.
+
+That token can trigger workflow runs on this repo, so treat it like any
+other credential: don't paste it anywhere besides that one service's
+config, and revoke/regenerate it (same Settings page) if you ever suspect
+it leaked. `refresh-dashboard.yml` keeps its `schedule` trigger too, so
+even if this external service ever has an outage, the dashboard still
+falls back to GitHub's own roughly-hourly cadence rather than going
+completely stale.
+
+## 3. Editing content that changes over time
 
 - **Business hours** (`render/config/business_hours.yaml`) -- plain text,
   edit and commit directly. No code changes needed, including for seasonal
@@ -42,7 +86,7 @@ Open-Meteo only (no indoor temp), and birthdays shows nothing.
 - **Location / climate normals / reservoir normals / meteor showers** all
   live in `render/config/*.yaml` and are hand-edited too.
 
-## 3. Flashing the Pico 2 W
+## 4. Flashing the Pico 2 W
 
 1. Install MicroPython: hold BOOTSEL, plug in the Pico 2 W, drag the
    [Pico 2 W UF2](https://micropython.org/download/RPI_PICO2_W/) onto the
@@ -62,7 +106,7 @@ Open-Meteo only (no indoor temp), and birthdays shows nothing.
 
 If you rename or fork the repo, update `IMAGE_URL` in `firmware/main.py`.
 
-## 4. Local dev (testing the render pipeline without hardware)
+## 5. Local dev (testing the render pipeline without hardware)
 
 ```
 cd render
@@ -81,7 +125,7 @@ python convert.py --in output/dashboard.png --out output/dashboard.bin
 the rest of the pipeline without setting up local credentials. If you want
 to test those two, export the same four env vars locally before running it.
 
-## 5. Known gaps / things to double check once hardware is running
+## 6. Known gaps / things to double check once hardware is running
 
 - **Pepacton Reservoir % full**: fixed -- this used to come from a
   mislabeled field in NYC's Socrata "Current Reservoir Levels" dataset and
@@ -116,9 +160,16 @@ to test those two, export the same four env vars locally before running it.
   between Tue 9am and Sun 2pm (the only window it actually tries to
   scrape). Only runs once a week -- see `current_pie_week_start()` /
   `in_pie_blackout()` in `fetch_data.py`.
-- **Game Watch** (Phillies/Eagles/Sixers) hasn't been tested against a real
-  live in-progress game yet for any of the three -- worth double checking
-  once a real game happens. Eagles/Sixers use ESPN's public site API
+- **Game Watch** (Phillies/Eagles/Sixers/Flyers) hasn't been tested against
+  a real live in-progress game yet for any of them -- worth double checking
+  once a real game happens. Eagles/Sixers/Flyers use ESPN's public site API
   (`site.api.espn.com`), which is unauthenticated and free but undocumented/
   unofficial -- it could change shape without notice. Phillies still uses
   the official MLB Stats API.
+- **Game Watch caching**: each team's schedule is only re-fetched once per
+  day if there's no game that day (`render/game_watch_cache.json`, see
+  README). If a team's status ever looks stuck on a stale "next game"
+  message past when it should've updated (e.g. a same-day doubleheader
+  makeup game got added after the day's first check), delete that team's
+  entry from the cache file to force a re-check, or just wait for the next
+  calendar day to roll the cache over automatically.
