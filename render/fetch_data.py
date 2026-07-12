@@ -331,9 +331,9 @@ def next_meteor_shower_str(today, lookahead_days=14):
 
 # --------------------------------------------------------- river/reservoir --
 
-def fetch_river_reservoir(settings):
+def fetch_river_reservoir(settings, today_str):
     river_temp_f, river_normal_diff_str = fetch_usgs_river_temp(settings)
-    reservoir_pct_full, reservoir_note = fetch_nyc_reservoir(settings)
+    reservoir_pct_full, reservoir_note = fetch_nyc_reservoir(settings, today_str)
 
     return {
         "river_name": "East Branch of the Delaware",
@@ -415,7 +415,17 @@ def fetch_usgs_daily_median(settings):
     return None
 
 
-def fetch_nyc_reservoir(settings):
+RESERVOIR_CACHE_PATH = HERE / "reservoir_cache.json"
+
+
+def fetch_nyc_reservoir(settings, today_str):
+    # DEP's page is only meaningfully updated about once a day -- no need to
+    # scrape it on every ~15-min run. Check once per calendar day and reuse
+    # that result the rest of the day.
+    cached = _load_reservoir_cache()
+    if cached and cached.get("date") == today_str:
+        return cached.get("pct_full"), cached.get("note", "")
+
     cfg = settings["nyc_reservoir"]
     try:
         # NYC DEP's own reservoir-levels page (not the Socrata "Current
@@ -447,10 +457,31 @@ def fetch_nyc_reservoir(settings):
             note = "Higher than normal"
         else:
             note = "Near normal"
+
+        _save_reservoir_cache(today_str, pct_full, note)
         return pct_full, note
     except Exception as e:
         print(f"[warn] NYC reservoir fetch failed: {e}")
+        if cached:
+            # Stale (from an earlier day) still beats a blank "—" -- this
+            # data barely moves day to day anyway.
+            return cached.get("pct_full"), cached.get("note", "")
         return None, ""
+
+
+def _load_reservoir_cache():
+    if not RESERVOIR_CACHE_PATH.exists():
+        return None
+    try:
+        return json.loads(RESERVOIR_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _save_reservoir_cache(today_str, pct_full, note):
+    RESERVOIR_CACHE_PATH.write_text(
+        json.dumps({"date": today_str, "pct_full": pct_full, "note": note}, indent=2), encoding="utf-8"
+    )
 
 
 # -------------------------------------------------------------- plant watch --
@@ -892,7 +923,7 @@ def main():
 
     weather = fetch_weather(settings)
     skygazing = fetch_skygazing(settings, weather.pop("_tonight_cloud_cover_pct"))
-    river_reservoir = fetch_river_reservoir(settings)
+    river_reservoir = fetch_river_reservoir(settings, today.isoformat())
     plant_watch = fetch_plant_watch(settings)
     business_watch = fetch_business_watch(now)
     birthdays = fetch_birthdays(today)

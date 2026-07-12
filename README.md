@@ -109,6 +109,15 @@ or overflowing, and logs a warning.
   DEP's public reservoir-levels page (server-rendered HTML, not a JSON
   API). The "normal" comparison is a hand-maintained approximate seasonal
   curve (`nyc_reservoir.normal_pct_by_month`), unlike the river's.
+- Reservoir data is cached once per calendar day
+  (`render/reservoir_cache.json`, committed by the Action like the other
+  caches) rather than scraped every ~15-min run -- DEP's page itself only
+  updates about once a day, so more frequent scraping would just hit the
+  same number repeatedly. River temp is *not* cached this way since it's a
+  live instantaneous reading that actually changes through the day. A
+  failed reservoir fetch falls back to the last cached value even if it's a
+  day or two stale, rather than showing "—" -- this data moves slowly
+  enough that stale still beats blank.
 
 **Plant Watch**
 - iNaturalist species_counts for the [Boy Scout Road

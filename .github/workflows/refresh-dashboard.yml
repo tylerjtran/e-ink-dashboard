@@ -61,11 +61,12 @@ jobs:
           # image changes) -- so make sure the file always exists first.
           [ -f render/pie_cache.json ] || echo '{}' > render/pie_cache.json
           [ -f render/game_watch_cache.json ] || echo '{}' > render/game_watch_cache.json
+          [ -f render/reservoir_cache.json ] || echo '{}' > render/reservoir_cache.json
 
       - name: Commit updated dashboard
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Refresh dashboard"
-          file_pattern: "dashboard/latest.png dashboard/latest.bin render/pie_cache.json render/game_watch_cache.json"
+          file_pattern: "dashboard/latest.png dashboard/latest.bin render/pie_cache.json render/game_watch_cache.json render/reservoir_cache.json"
           commit_user_name: "dashboard-bot"
           commit_user_email: "actions@github.com"
