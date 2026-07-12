@@ -85,8 +85,16 @@ or overflowing, and logs a warning.
   approximate, not official daily normals.
 - "X° warmer/cooler than Philly": your resolved outdoor temp vs. a separate
   live Open-Meteo call for Philadelphia's coordinates.
-- Burn ban: manual toggle (`burn_ban_active` in `settings.yaml`) -- no
-  public API found for NY DEC burn ban status.
+- Burn ban / fire risk (`get_burn_ban_str`): shows "Burn ban in place"
+  during NY's statutory annual open-burning restriction (March 16 - May 14,
+  hardcoded, 6 NYCRR Part 215 -- no data source needed, and the fire-risk
+  API below isn't even called during this window). Outside that window,
+  shows "[Low/Moderate/High/etc.] fire risk" -- scraped from the NY State
+  Mesonet's FDRA risk table (`api.nysmesonet.org`, the same source NY DEC's
+  own fire danger map embeds via iframe), filtered to the "Catskill" region
+  (covers Downsville/Delaware County). Cached once per calendar day
+  (`render/fire_risk_cache.json`) since that table only issues a new
+  ~2-day "Effective" window about once a day.
 
 **Stargazing**
 - Conditions ("Excellent/Good/OK/Poor"): a score combining forecast cloud

@@ -82,7 +82,7 @@ def now_local(tz_name):
 
 # ---------------------------------------------------------------- weather --
 
-def fetch_weather(settings):
+def fetch_weather(settings, today):
     # Open-Meteo and Ambient Weather are independent sources -- if one is
     # down, the other's data (if any) should still make it onto the
     # dashboard rather than taking every weather field (and every other box,
@@ -117,7 +117,7 @@ def fetch_weather(settings):
         "normal_diff_str": normal_diff_str,
         "philly_diff_str": philly_diff_str,
         "indoor_temp_f": _dash_if_none(indoor_temp_f if indoor_temp_f is not None else outdoor_temp_f),
-        "burn_ban_str": "Burn ban in effect" if settings["burn_ban_active"] else "No burn ban",
+        "burn_ban_str": get_burn_ban_str(today),
         "icon_name": weather_icon_name(weather_code) if weather_code is not None else "device_thermostat",
         "_tonight_cloud_cover_pct": tonight_cloud_cover_pct,  # used by skygazing, not displayed directly
     }
@@ -125,6 +125,74 @@ def fetch_weather(settings):
 
 def _dash_if_none(value):
     return value if value is not None else "—"
+
+
+# NY's statutory open-burning restriction (6 NYCRR Part 215): burning is
+# banned statewide during this window every year, regardless of conditions.
+ANNUAL_BURN_BAN_START = (3, 16)  # March 16
+ANNUAL_BURN_BAN_END = (5, 14)  # May 14
+
+FIRE_RISK_CACHE_PATH = HERE / "fire_risk_cache.json"
+FIRE_RISK_URL = "https://api.nysmesonet.org/data/firewx/GetFDRA/image.php/table/latest"
+FIRE_RISK_REGION = "Catskill"  # covers Downsville (Delaware County), per NY DEC's FDRA map
+
+
+def get_burn_ban_str(today):
+    start = date(today.year, *ANNUAL_BURN_BAN_START)
+    end = date(today.year, *ANNUAL_BURN_BAN_END)
+    if start <= today <= end:
+        # Statutory ban is in effect regardless of fire risk -- no need to
+        # even check the risk-level API.
+        return "Burn ban in place"
+
+    risk_level = fetch_fire_risk_level(today.isoformat())
+    if risk_level:
+        return f"{risk_level} fire risk"
+    return "—"
+
+
+def fetch_fire_risk_level(today_str):
+    # NY State Mesonet's own FDRA table (embedded via iframe on NY DEC's
+    # fire danger map page) -- issues a new ~2-day "Effective" window about
+    # once a day, so no need to check more than once per calendar day.
+    cached = _load_fire_risk_cache()
+    if cached and cached.get("date") == today_str:
+        return cached.get("risk_level")
+
+    try:
+        r = requests.get(
+            FIRE_RISK_URL,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36"},
+            timeout=REQUEST_TIMEOUT,
+        )
+        r.raise_for_status()
+        m = re.search(
+            rf"<td>{re.escape(FIRE_RISK_REGION)}</td>\s*<td>([^<]+)</td>",
+            r.text,
+        )
+        if not m:
+            raise ValueError(f"{FIRE_RISK_REGION!r} row not found in FDRA table -- page layout may have changed")
+        risk_level = m.group(1).strip()
+        _save_fire_risk_cache(today_str, risk_level)
+        return risk_level
+    except Exception as e:
+        print(f"[warn] Fire risk fetch failed: {e}")
+        return cached.get("risk_level") if cached else None
+
+
+def _load_fire_risk_cache():
+    if not FIRE_RISK_CACHE_PATH.exists():
+        return None
+    try:
+        return json.loads(FIRE_RISK_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _save_fire_risk_cache(today_str, risk_level):
+    FIRE_RISK_CACHE_PATH.write_text(
+        json.dumps({"date": today_str, "risk_level": risk_level}, indent=2), encoding="utf-8"
+    )
 
 
 def _fetch_open_meteo_weather(settings):
@@ -921,7 +989,7 @@ def main():
     now = now_local(tz_name)
     today = now.date()
 
-    weather = fetch_weather(settings)
+    weather = fetch_weather(settings, today)
     skygazing = fetch_skygazing(settings, weather.pop("_tonight_cloud_cover_pct"))
     river_reservoir = fetch_river_reservoir(settings, today.isoformat())
     plant_watch = fetch_plant_watch(settings)

@@ -80,11 +80,11 @@ completely stale.
 - **Business hours** (`render/config/business_hours.yaml`) -- plain text,
   edit and commit directly. No code changes needed, including for seasonal
   hour changes.
-- **Burn ban** (`render/config/settings.yaml`, `burn_ban_active`) -- flip
-  this by hand for now; no public API was found for NY DEC burn ban status
-  at build time.
 - **Location / climate normals / reservoir normals / meteor showers** all
   live in `render/config/*.yaml` and are hand-edited too.
+- **Annual burn ban dates** (`ANNUAL_BURN_BAN_START` / `ANNUAL_BURN_BAN_END`
+  in `fetch_data.py`) -- currently March 16 - May 14, NY's statutory
+  window. Only needs editing if that regulation changes.
 
 ## 4. Flashing the Pico 2 W
 
@@ -173,3 +173,10 @@ to test those two, export the same four env vars locally before running it.
   makeup game got added after the day's first check), delete that team's
   entry from the cache file to force a re-check, or just wait for the next
   calendar day to roll the cache over automatically.
+- **Burn ban / fire risk** (`get_burn_ban_str` in `fetch_data.py`): the
+  fire-risk half (outside the Mar 16-May 14 statutory window) has been
+  confirmed against live data -- it correctly pulled "Catskill: Low" from
+  the Mesonet table. The burn-ban half (inside that window) hasn't been
+  tested against a real run during that window yet since it was built in
+  July, though the date-range logic itself is simple enough to trust. If
+  NY's Part 215 dates ever change, update `ANNUAL_BURN_BAN_START`/`_END`.

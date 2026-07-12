@@ -62,11 +62,15 @@ jobs:
           [ -f render/pie_cache.json ] || echo '{}' > render/pie_cache.json
           [ -f render/game_watch_cache.json ] || echo '{}' > render/game_watch_cache.json
           [ -f render/reservoir_cache.json ] || echo '{}' > render/reservoir_cache.json
+          # fire_risk_cache.json is never written at all during the annual
+          # Mar 16-May 14 burn ban window (the fire-risk API isn't even
+          # called then) -- same missing-file guard as the others.
+          [ -f render/fire_risk_cache.json ] || echo '{}' > render/fire_risk_cache.json
 
       - name: Commit updated dashboard
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Refresh dashboard"
-          file_pattern: "dashboard/latest.png dashboard/latest.bin render/pie_cache.json render/game_watch_cache.json render/reservoir_cache.json"
+          file_pattern: "dashboard/latest.png dashboard/latest.bin render/pie_cache.json render/game_watch_cache.json render/reservoir_cache.json render/fire_risk_cache.json"
           commit_user_name: "dashboard-bot"
           commit_user_email: "actions@github.com"

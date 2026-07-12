@@ -9,10 +9,6 @@ philly:
   lat: 39.9526
   lon: -75.1652
 
-# Manually toggle during an active NY DEC burn ban. No clean public API was
-# found for this at build time -- flip this by hand until a real source is wired up.
-burn_ban_active: false
-
 electric:
   peak_days: [mon, tue, wed, thu, fri]
   peak_start: "16:00"

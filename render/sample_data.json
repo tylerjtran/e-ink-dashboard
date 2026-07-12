@@ -11,7 +11,7 @@
     "normal_diff_str": "8° warmer than normal",
     "philly_diff_str": "5° cooler than Philly",
     "indoor_temp_f": 68,
-    "burn_ban_str": "No burn ban",
+    "burn_ban_str": "Low fire risk",
     "icon_name": "partly_cloudy_day"
   },
   "skygazing": {
