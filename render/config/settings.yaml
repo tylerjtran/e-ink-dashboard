@@ -22,23 +22,6 @@ ambient_weather:
 open_meteo:
   base_url: "https://api.open-meteo.com/v1/forecast"
 
-# Approximate monthly climate normals for the Downsville area (proxy: Delhi, NY,
-# ~10 mi away -- closest station with published normals). Used only for the
-# "X warmer/cooler than normal" line. Edit freely if you find better local data.
-climate_normals:
-  jan: { high: 31, low: 11 }
-  feb: { high: 34, low: 12 }
-  mar: { high: 43, low: 22 }
-  apr: { high: 55, low: 32 }
-  may: { high: 67, low: 42 }
-  jun: { high: 75, low: 51 }
-  jul: { high: 80, low: 54 }
-  aug: { high: 78, low: 53 }
-  sep: { high: 70, low: 46 }
-  oct: { high: 60, low: 35 }
-  nov: { high: 47, low: 28 }
-  dec: { high: 35, low: 18 }
-
 usgs:
   # East Branch Delaware River at Harvard, NY (USGS-01417500). The previous
   # site (01417000, at Downsville) wasn't reporting temperature, only

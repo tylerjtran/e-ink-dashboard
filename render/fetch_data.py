@@ -96,13 +96,14 @@ def fetch_weather(settings, today):
 
     high_f = om["high_f"] if om else None
     low_f = om["low_f"] if om else None
+    mean_f = om["mean_f"] if om else None
     condition = om["condition"] if om else "Unknown"
     chance_rain_pct = om["chance_rain_pct"] if om else None
     weather_code = om["weather_code"] if om else None
     tonight_cloud_cover_pct = om["tonight_cloud_cover_pct"] if om else 50  # neutral guess
 
     try:
-        normal_diff_str = compute_normal_diff(settings, high_f) if high_f is not None else ""
+        normal_diff_str = compute_normal_diff(mean_f, today) if mean_f is not None else ""
     except Exception as e:
         print(f"[warn] Normal-diff computation failed: {e}")
         normal_diff_str = ""
@@ -204,7 +205,7 @@ def _fetch_open_meteo_weather(settings):
             "longitude": loc["lon"],
             "current": "temperature_2m,weather_code",
             "hourly": "cloud_cover",
-            "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
+            "daily": "temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_probability_max,weather_code",
             "temperature_unit": "fahrenheit",
             "forecast_days": 1,
             "timezone": loc["timezone"],
@@ -220,6 +221,7 @@ def _fetch_open_meteo_weather(settings):
             "outdoor_temp_f": round(current["temperature_2m"]),
             "high_f": round(daily["temperature_2m_max"][0]),
             "low_f": round(daily["temperature_2m_min"][0]),
+            "mean_f": round(daily["temperature_2m_mean"][0]),
             "condition": WMO_CODE_TEXT.get(weather_code, "Unknown"),
             "chance_rain_pct": daily["precipitation_probability_max"][0],
             "weather_code": weather_code,
@@ -316,15 +318,34 @@ def fetch_ambient_weather(settings):
     return data[0]
 
 
-def compute_normal_diff(settings, high_f):
-    month_key = date.today().strftime("%b").lower()
-    normal_high = settings["climate_normals"][month_key]["high"]
-    diff = high_f - normal_high
+CLIMATE_NORMALS_CACHE_PATH = HERE / "climate_normals_cache.json"
+
+
+def compute_normal_diff(mean_f, today):
+    # Precomputed once by generate_climate_normals.py from 30 years of
+    # historical data (see that file) -- a real day-of-year average, not a
+    # hand-maintained monthly approximation. No network call here; this is
+    # a fixed reference baseline that doesn't change day to day.
+    month_day = today.strftime("%m-%d")
+    normals = _load_climate_normals()
+    if not normals or month_day not in normals:
+        return ""
+
+    diff = round(mean_f - normals[month_day])
     if diff >= 2:
         return f"{diff}° warmer than normal"
     if diff <= -2:
         return f"{-diff}° cooler than normal"
     return "Near normal temperature"
+
+
+def _load_climate_normals():
+    if not CLIMATE_NORMALS_CACHE_PATH.exists():
+        return None
+    try:
+        return json.loads(CLIMATE_NORMALS_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return None
 
 
 # -------------------------------------------------------------- skygazing --

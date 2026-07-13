@@ -80,11 +80,17 @@ completely stale.
 - **Business hours** (`render/config/business_hours.yaml`) -- plain text,
   edit and commit directly. No code changes needed, including for seasonal
   hour changes.
-- **Location / climate normals / reservoir normals / meteor showers** all
-  live in `render/config/*.yaml` and are hand-edited too.
+- **Location / reservoir normals / meteor showers** all live in
+  `render/config/*.yaml` and are hand-edited too.
 - **Annual burn ban dates** (`ANNUAL_BURN_BAN_START` / `ANNUAL_BURN_BAN_END`
   in `fetch_data.py`) -- currently March 16 - May 14, NY's statutory
   window. Only needs editing if that regulation changes.
+- **Weather climate normals** (`render/climate_normals_cache.json`) are
+  *generated*, not hand-edited -- re-run `python generate_climate_normals.py`
+  (from the `render/` folder, same venv as the rest of the pipeline) if you
+  ever want to shift the 30-year reference period. Not part of the regular
+  15-min pipeline; this file only changes when you deliberately regenerate
+  it.
 
 ## 4. Flashing the Pico 2 W
 

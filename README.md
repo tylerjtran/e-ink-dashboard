@@ -80,9 +80,16 @@ or overflowing, and logs a warning.
   without affecting the other (see "Error handling" above) -- if Open-Meteo
   is down, temp still shows from Ambient Weather (or "—" if that's also
   unavailable), while condition/rain%/high/low show "Unknown"/"—".
-- "X° warmer/cooler than normal": forecast high vs. a hand-maintained
-  monthly climate-normals table (`climate_normals` in `settings.yaml`) --
-  approximate, not official daily normals.
+- "X° warmer/cooler than normal": forecast daily mean temp vs. a real
+  30-year (1991-2020) historical day-of-year average -- not an
+  approximation like the reservoir/weather normals elsewhere. Computed once
+  by `render/generate_climate_normals.py` (not part of the regular
+  pipeline) from Open-Meteo's historical archive API, and stored in
+  `render/climate_normals_cache.json`. The regular pipeline only ever does
+  a local lookup against that file -- no network call for this metric on
+  any normal run, since a fixed 30-year baseline doesn't change day to day.
+  Re-run the generator script by hand if you ever want to shift the
+  reference period (e.g. to a more recent 30 years).
 - "X° warmer/cooler than Philly": your resolved outdoor temp vs. a separate
   live Open-Meteo call for Philadelphia's coordinates.
 - Burn ban / fire risk (`get_burn_ban_str`): shows "Burn ban in place"
