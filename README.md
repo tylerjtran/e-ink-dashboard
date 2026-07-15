@@ -103,6 +103,20 @@ or overflowing, and logs a warning.
   (`render/fire_risk_cache.json`) since that table only issues a new
   ~2-day "Effective" window about once a day.
 
+**Window banner** (header, between the date and the electric note --
+`compute_window_banner`)
+- Only shown May 1 - Oct 31, and only when today's forecast high is 76°F
+  or warmer -- hidden entirely the rest of the year (no reserved space; the
+  box-fitting logic below the header adapts automatically either way).
+- Also hidden if indoor temp is below 60°F, or if indoor/outdoor are within
+  2°F of each other (not worth acting on).
+- Otherwise: "Open the windows!" (outdoor cooler than indoor, by more than
+  2°F) or "Close the windows!" (outdoor warmer, by more than 2°F) --
+  compares *current* Ambient Weather indoor/outdoor temps, not forecast
+  values. Requires real indoor data (Ambient Weather secrets configured and
+  working) -- won't show at all otherwise, since there's nothing to compare
+  outdoor to.
+
 **Stargazing**
 - Conditions ("Excellent/Good/OK/Poor"): a score combining forecast cloud
   cover for *tonight* specifically (Open-Meteo hourly, averaged over 9-11pm,

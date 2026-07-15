@@ -2,6 +2,10 @@
   "date_str": "Friday, July 10",
   "updated_time_str": "6:05pm",
   "electric_note": "Off-peak electric",
+  "window_banner": {
+    "message": "Open the windows!",
+    "icon": "open"
+  },
   "weather": {
     "temp_f": 72,
     "condition": "Partly Cloudy",

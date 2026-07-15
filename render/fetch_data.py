@@ -121,7 +121,40 @@ def fetch_weather(settings, today):
         "burn_ban_str": get_burn_ban_str(today),
         "icon_name": weather_icon_name(weather_code) if weather_code is not None else "device_thermostat",
         "_tonight_cloud_cover_pct": tonight_cloud_cover_pct,  # used by skygazing, not displayed directly
+        # Raw (pre-fallback) indoor_temp_f on purpose -- a window
+        # recommendation needs real indoor data, not outdoor substituted in.
+        "_window_banner": compute_window_banner(today, high_f, outdoor_temp_f, indoor_temp_f),
     }
+
+
+# Header banner shown only on hot-season days -- outside this window, or
+# without a clear enough indoor/outdoor split, it's hidden entirely (see
+# compute_window_banner).
+WINDOW_BANNER_START = (5, 1)  # May 1
+WINDOW_BANNER_END = (10, 31)  # Oct 31
+WINDOW_BANNER_MIN_FORECAST_HIGH_F = 76
+WINDOW_BANNER_MIN_INDOOR_F = 60
+WINDOW_BANNER_BUFFER_F = 2
+
+
+def compute_window_banner(today, forecast_high_f, outdoor_temp_f, indoor_temp_f):
+    start = date(today.year, *WINDOW_BANNER_START)
+    end = date(today.year, *WINDOW_BANNER_END)
+    if not (start <= today <= end):
+        return None
+    if forecast_high_f is None or forecast_high_f < WINDOW_BANNER_MIN_FORECAST_HIGH_F:
+        return None
+    if indoor_temp_f is None or indoor_temp_f < WINDOW_BANNER_MIN_INDOOR_F:
+        return None
+    if outdoor_temp_f is None:
+        return None
+
+    diff = outdoor_temp_f - indoor_temp_f
+    if abs(diff) <= WINDOW_BANNER_BUFFER_F:
+        return None
+    if diff < 0:
+        return {"message": "Open the windows!", "icon": "open"}
+    return {"message": "Close the windows!", "icon": "closed"}
 
 
 def _dash_if_none(value):
@@ -1012,6 +1045,7 @@ def main():
 
     weather = fetch_weather(settings, today)
     skygazing = fetch_skygazing(settings, weather.pop("_tonight_cloud_cover_pct"))
+    window_banner = weather.pop("_window_banner")
     river_reservoir = fetch_river_reservoir(settings, today.isoformat())
     plant_watch = fetch_plant_watch(settings)
     business_watch = fetch_business_watch(now)
@@ -1030,6 +1064,7 @@ def main():
         "date_str": date_str,
         "updated_time_str": updated_time_str,
         "electric_note": electric_note,
+        "window_banner": window_banner,
         "weather": weather,
         "skygazing": skygazing,
         "river_reservoir": river_reservoir,

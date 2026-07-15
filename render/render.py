@@ -18,11 +18,15 @@ WIDTH, HEIGHT = 800, 480
 def render_html(data: dict) -> str:
     env = Environment(loader=FileSystemLoader(str(HERE)))
     template = env.get_template("template.html.j2")
-    # Absolute file:// URI, not a relative path -- the rendered HTML can end
+    # Absolute file:// URIs, not relative paths -- the rendered HTML can end
     # up written to a different directory than render/ (e.g. output/), so a
     # relative "assets/..." src wouldn't reliably resolve.
-    plant_qr_uri = (ASSETS / "plant_qr_code.png").as_uri()
-    return template.render(**data, plant_qr_uri=plant_qr_uri)
+    return template.render(
+        **data,
+        plant_qr_uri=(ASSETS / "plant_qr_code.png").as_uri(),
+        open_window_uri=(ASSETS / "open_window.png").as_uri(),
+        closed_window_uri=(ASSETS / "closed_window.png").as_uri(),
+    )
 
 
 # Boxes whose content length varies run to run (more/fewer live games,

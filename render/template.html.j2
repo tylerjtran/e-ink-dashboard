@@ -52,6 +52,7 @@
      with the electric text below, without fighting nested-flex baseline
      ambiguity. */
   #header .date-block,
+  #header .window-banner,
   #header .electric {
     display: block;
   }
@@ -77,6 +78,19 @@
 
   #header .electric .material-symbols-outlined {
     margin-right: 4px;
+  }
+
+  #header .window-banner {
+    font-size: 13px;
+    font-weight: 600;
+    font-style: italic;
+  }
+
+  #header .window-banner img {
+    height: 24px;
+    width: 24px;
+    vertical-align: middle;
+    margin-right: 6px;
   }
 
   /* ---------- grid ---------- */
@@ -211,6 +225,12 @@
         <span class="date">{{ date_str }}</span>
         <span class="updated">Updated {{ updated_time_str }}</span>
       </div>
+      {% if window_banner %}
+      <div class="window-banner">
+        <img src="{{ open_window_uri if window_banner.icon == 'open' else closed_window_uri }}" alt="">
+        <span>{{ window_banner.message }}</span>
+      </div>
+      {% endif %}
       <div class="electric">
         <span class="material-symbols-outlined">bolt</span>
         <span>{{ electric_note }}</span>
