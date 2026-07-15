@@ -1,8 +1,9 @@
 {
-  "scraped_at": "2026-07-14T09:00:51.398940-04:00",
   "pies": [
     "Scape 'n pancetta quiche",
     "Local brown butter blueberry",
     "Diner-style chocolate-peanut butter"
-  ]
+  ],
+  "confirmed_week_start": null,
+  "last_attempt_at": "2026-07-15T19:03:15.764193-04:00"
 }

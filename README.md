@@ -198,15 +198,25 @@ or overflowing, and logs a warning.
   cached result from earlier today rather than going blank.
 
 **Pie Watch**
-- Blackout window (Sun 2pm - Tue 9am): shows a static "Stay tuned..."
-  message, no scraping attempted.
-- Otherwise: Playwright scrapes Magpies' Square Online order page
-  (`render/scrape_pie.py`) for current product names. Runs at most once per
-  "pie week" (a fresh scrape is only attempted once the cached result is
-  older than the most recent Tuesday 9am) and caches the result in
-  `render/pie_cache.json`, which the Action commits back to the repo. A
-  failed scrape falls back to the last cached list rather than showing
-  nothing.
+- Blackout window (Sun 2pm - Tue 3pm): shows a static "Stay tuned..."
+  message, no scraping attempted. (Originally Tue 9am -- moved to 3pm since
+  Magpies updates their menu for the week later than 9am, though the
+  confirm-different-content check below matters more than this exact time.)
+- Once blackout ends, scrapes Magpies' Square Online order page
+  (`render/scrape_pie.py`) and compares the result against the currently
+  cached list -- if it's the *same*, the site probably hasn't posted the
+  new week's menu yet, so that result is **not** confirmed as this week's;
+  it keeps showing the old (still-accurate) list and tries again after
+  `PIE_RETRY_INTERVAL` (3 hours), rather than locking in a stale scrape just
+  because a request happened to succeed. Only once the scraped list
+  actually *differs* from what's cached does it confirm and stop
+  re-checking until next week. This means the exact blackout-end time
+  matters less than it used to -- if Magpies updates late, this just keeps
+  quietly retrying every few hours instead of showing last week's menu all
+  week.
+- State lives in `render/pie_cache.json` (`pies`, `confirmed_week_start`,
+  `last_attempt_at`), committed by the Action. A failed scrape falls back
+  to the last cached list rather than showing nothing.
 
 **Electric note**
 - Config-driven peak/off-peak schedule (`electric` in `settings.yaml`), no

@@ -953,24 +953,29 @@ PIE_CACHE_PATH = HERE / "pie_cache.json"
 
 
 def in_pie_blackout(now):
-    """Sun 2pm through Tue 9am: between weekend pie runs, nothing new to show."""
+    """Sun 2pm through Tue 3pm: between weekend pie runs, nothing new to show."""
     weekday = now.weekday()  # Mon=0 ... Sun=6
     if weekday == 6 and now.hour >= 14:  # Sunday, 2pm or later
         return True
     if weekday == 0:  # Monday, all day
         return True
-    if weekday == 1 and now.hour < 9:  # Tuesday, before 9am
+    if weekday == 1 and now.hour < 15:  # Tuesday, before 3pm
         return True
     return False
 
 
 def current_pie_week_start(now):
-    """The most recent Tuesday 9am at or before `now`."""
+    """The most recent Tuesday 3pm at or before `now`."""
     days_since_tuesday = (now.weekday() - 1) % 7  # Mon=0 -> Tue=1
-    candidate = (now - timedelta(days=days_since_tuesday)).replace(hour=9, minute=0, second=0, microsecond=0)
+    candidate = (now - timedelta(days=days_since_tuesday)).replace(hour=15, minute=0, second=0, microsecond=0)
     if candidate > now:
         candidate -= timedelta(days=7)
     return candidate
+
+
+# After blackout ends, don't hammer the site every ~15 min while waiting for
+# Magpies to actually post the new week's menu -- space out retries.
+PIE_RETRY_INTERVAL = timedelta(hours=3)
 
 
 def fetch_pie_watch(now):
@@ -978,26 +983,49 @@ def fetch_pie_watch(now):
         return {"message": "Stay tuned for next weekend's pie menu.", "pies": []}
 
     week_start = current_pie_week_start(now)
-    cache = _load_pie_cache()
-    if cache and datetime.fromisoformat(cache["scraped_at"]) >= week_start:
-        return {"message": None, "pies": cache["pies"]}
+    cache = _load_pie_cache() or {}
+    cached_pies = cache.get("pies", [])
+    confirmed_week_start = _parse_iso(cache.get("confirmed_week_start"))
+    last_attempt_at = _parse_iso(cache.get("last_attempt_at"))
+
+    if confirmed_week_start and confirmed_week_start >= week_start:
+        # Already confirmed a genuinely-updated list for this week -- done
+        # until next week's blackout ends.
+        return {"message": None, "pies": cached_pies}
+
+    if last_attempt_at and (now - last_attempt_at) < PIE_RETRY_INTERVAL:
+        # Checked too recently (menu wasn't updated yet last time) -- wait
+        # out the rest of the retry interval before trying again.
+        return {"message": None, "pies": cached_pies}
 
     try:
         from scrape_pie import scrape_pies  # lazy: only needs Playwright when actually scraping
-        pies = scrape_pies()
+        scraped_pies = scrape_pies()
     except Exception as e:
         print(f"[warn] Pie scrape failed: {e}")
-        pies = []
+        scraped_pies = []
 
-    if pies:
-        _save_pie_cache(pies, now)
-        return {"message": None, "pies": pies}
+    if not scraped_pies:
+        _save_pie_cache(cached_pies, confirmed_week_start, now)
+        if cached_pies:
+            return {"message": None, "pies": cached_pies}
+        return {"message": "Check back soon — pie list coming shortly", "pies": []}
 
-    if cache:
-        # This week's scrape failed, but a (stale-ish) previous list beats nothing.
-        return {"message": None, "pies": cache["pies"]}
+    if scraped_pies == cached_pies:
+        # Site hasn't actually posted this week's menu yet -- same list as
+        # before. Record that we checked (so the retry throttle applies),
+        # but don't confirm it as this week's; try again after the interval.
+        print("[pie_watch] scraped pies match the cached list -- menu likely not updated yet, will retry later")
+        _save_pie_cache(cached_pies, confirmed_week_start, now)
+        return {"message": None, "pies": cached_pies}
 
-    return {"message": "Check back soon — pie list coming shortly", "pies": []}
+    # Genuinely different from what was cached -- confirm it for this week.
+    _save_pie_cache(scraped_pies, week_start, now)
+    return {"message": None, "pies": scraped_pies}
+
+
+def _parse_iso(value):
+    return datetime.fromisoformat(value) if value else None
 
 
 def _load_pie_cache():
@@ -1009,9 +1037,17 @@ def _load_pie_cache():
         return None
 
 
-def _save_pie_cache(pies, now):
+def _save_pie_cache(pies, confirmed_week_start, attempted_at):
     PIE_CACHE_PATH.write_text(
-        json.dumps({"scraped_at": now.isoformat(), "pies": pies}, indent=2), encoding="utf-8"
+        json.dumps(
+            {
+                "pies": pies,
+                "confirmed_week_start": confirmed_week_start.isoformat() if confirmed_week_start else None,
+                "last_attempt_at": attempted_at.isoformat(),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
     )
 
 

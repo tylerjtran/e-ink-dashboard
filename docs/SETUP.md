@@ -161,11 +161,17 @@ to test those two, export the same four env vars locally before running it.
   isn't a guess anymore. It fails soft either way (falls back to the last
   good cached list, or "Check back soon" if there's never been one), so a
   future broken selector won't break the dashboard, it'll just keep showing
-  stale/placeholder content and retry on the next run. Check
-  `dashboard/pie_cache.json` and the "Fetch data" step logs after a run
-  between Tue 9am and Sun 2pm (the only window it actually tries to
-  scrape). Only runs once a week -- see `current_pie_week_start()` /
-  `in_pie_blackout()` in `fetch_data.py`.
+  stale/placeholder content and retry on the next run.
+- **Pie Watch confirm-different-content logic**: after blackout ends (Tue
+  3pm), a successful scrape that returns the *same* list as what's already
+  cached is deliberately **not** confirmed as the new week's menu -- it's
+  treated as "site hasn't posted this week's update yet," and it retries
+  every `PIE_RETRY_INTERVAL` (3 hours, in `fetch_data.py`) until the result
+  actually changes. Check `render/pie_cache.json`'s `confirmed_week_start`
+  field to see whether this week has actually been confirmed yet, and the
+  "Fetch data" step logs for `[pie_watch] scraped pies match the cached
+  list` if it's still waiting. Only tries during Tue 3pm - Sun 2pm -- see
+  `current_pie_week_start()` / `in_pie_blackout()` in `fetch_data.py`.
 - **Game Watch** (Phillies/Eagles/Sixers/Flyers) hasn't been tested against
   a real live in-progress game yet for any of them -- worth double checking
   once a real game happens. Eagles/Sixers/Flyers use ESPN's public site API
