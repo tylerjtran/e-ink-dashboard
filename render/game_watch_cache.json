@@ -1,8 +1,8 @@
 {
   "phillies": {
     "date": "2026-07-18",
-    "status": "vs Mets in progress, top of 9th",
-    "has_game_today": true
+    "status": "vs Mets tomorrow at 1:35pm",
+    "has_game_today": false
   },
   "eagles": {
     "date": "2026-07-18",
