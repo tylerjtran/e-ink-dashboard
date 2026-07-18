@@ -19,6 +19,11 @@
     /* e-paper has no anti-aliasing benefit and dithers grays anyway;
        keep strokes crisp for a 1-bit render. */
     -webkit-font-smoothing: none;
+    /* Regular (400) weight at small sizes loses thin strokes (e.g. the
+       stem of "d"/"n") when anti-aliased pixels get thresholded to black/
+       white for the e-paper's 1-bit buffer -- 600 is the lightest loaded
+       weight thick enough to survive that. */
+    font-weight: 600;
   }
 
   .material-symbols-outlined {
