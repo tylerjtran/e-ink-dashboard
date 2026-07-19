@@ -7,10 +7,11 @@
    (`render/render.py`), converts that to the raw 1-bit buffer format the
    e-paper panel wants (`render/convert.py`), and commits the result to
    `dashboard/latest.bin` (and `latest.png`, for previewing in a browser).
-   It's *meant* to run frequently, but GitHub's own `schedule` trigger for
-   Actions is best-effort and gets throttled to roughly hourly in practice,
-   regardless of the cron expression -- see section 2 below if you want
-   real, frequent updates.
+   It only has a `workflow_dispatch` trigger (no native `schedule` -- GitHub's
+   own cron for Actions is best-effort and gets throttled to roughly hourly
+   regardless of the cron expression, so it wasn't a reliable fallback
+   anyway), which means it does nothing on its own -- see section 2, which
+   is required, not optional, for the dashboard to refresh automatically.
 2. The Pico 2 W (`firmware/main.py`) connects to Wi-Fi, downloads
    `dashboard/latest.bin` over HTTPS, and pushes the bytes straight into the
    e-paper display. It does no rendering itself.
@@ -34,18 +35,15 @@ secret**. Add these four:
 Until these are set, the dashboard still renders: weather falls back to
 Open-Meteo only (no indoor temp), and birthdays shows nothing.
 
-## 2. Getting more frequent refreshes (optional)
+## 2. Setting up automatic refreshes (required)
 
-GitHub's own `schedule` trigger is best-effort -- in practice it gets
-throttled to roughly once an hour on repos like this one, no matter what
-the cron expression in `refresh-dashboard.yml` says. This is a GitHub
-platform limitation, not something fixable in the workflow file itself. If
-~hourly updates are fine, skip this whole section -- the dashboard still
-refreshes on its own via that fallback schedule, no setup required.
-
-For real, frequent updates, an external service needs to call GitHub's API
-to trigger the workflow (`workflow_dispatch`) on its own schedule, bypassing
-GitHub's throttled cron entirely:
+`refresh-dashboard.yml` only has a `workflow_dispatch` trigger -- there's no
+native `schedule` trigger, so nothing runs it automatically on its own.
+(GitHub's own Actions cron is best-effort and gets throttled to roughly
+hourly regardless of the cron expression used, so it wasn't a reliable
+fallback anyway -- not worth keeping around just to occasionally paper over
+an outage in the setup below.) An external service needs to call GitHub's
+API to trigger the workflow on a schedule:
 
 1. Create a **fine-grained GitHub personal access token**: github.com >
    Settings > Developer settings > Personal access tokens > Fine-grained
@@ -75,10 +73,10 @@ GitHub's throttled cron entirely:
 That token can trigger workflow runs on this repo, so treat it like any
 other credential: don't paste it anywhere besides that one service's
 config, and revoke/regenerate it (same Settings page) if you ever suspect
-it leaked. `refresh-dashboard.yml` keeps its `schedule` trigger too, so
-even if this external service ever has an outage, the dashboard still
-falls back to GitHub's own roughly-hourly cadence rather than going
-completely stale.
+it leaked. There's no `schedule` fallback anymore -- if cron-job.org has an
+outage, the token expires, or either job gets accidentally disabled, the
+dashboard stops refreshing entirely and silently shows stale data until
+someone notices and checks cron-job.org's dashboard for both jobs.
 
 ## 3. Editing content that changes over time
 

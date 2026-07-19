@@ -1,11 +1,6 @@
 name: Refresh dashboard
 
 on:
-  schedule:
-    # Every 15 minutes. GitHub Actions cron isn't guaranteed to fire exactly
-    # on time (it can slip several minutes under load), so treat the 15-min
-    # cadence as a target, not a guarantee.
-    - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
 permissions:

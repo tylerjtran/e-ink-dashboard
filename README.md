@@ -9,11 +9,13 @@ game status, and a pie-watch box for the local bakery.
 
 - **GitHub Actions** (`.github/workflows/refresh-dashboard.yml`) fetches
   data from various APIs, renders it to an 800x480 PNG, converts that to the
-  raw byte format the display wants, and commits both to `dashboard/`.
-  Meant to run frequently, but GitHub's own scheduling for Actions is
-  best-effort and gets throttled to roughly hourly in practice -- see
-  SETUP.md for an optional external trigger to get real, frequent updates
-  (currently every 20 min from 7am-9pm Eastern, every 2 hours overnight).
+  raw byte format the display wants, and commits both to `dashboard/`. It
+  only has a `workflow_dispatch` trigger -- no native `schedule` (GitHub's
+  own Actions cron is best-effort and gets throttled to roughly hourly
+  regardless of the cron expression, so it wasn't a dependable fallback
+  anyway) -- so it does nothing without an external trigger. See SETUP.md
+  for the required cron-job.org setup that calls it (currently every 20 min
+  from 7am-9pm Eastern, every 2 hours overnight).
 - **Raspberry Pi Pico 2 W** (`firmware/`) connects to Wi-Fi and downloads
   `dashboard/latest.bin` on its own independent 5-minute timer, pushing it
   straight to a Waveshare 7.5" e-paper panel. It does no rendering of its
@@ -56,9 +58,11 @@ Two layers:
   rendered image rather than a broken or half-updated one. Given the
   refresh cadence (as fast as every 20 minutes -- see SETUP.md), a
   transient failure usually just delays the next update by one cycle; a
-  sustained one leaves the dashboard stale until it
-  clears (GitHub emails the repo owner by default on repeated scheduled-run
-  failures, but there's no other alerting built here).
+  sustained one leaves the dashboard stale until it clears. There's no
+  `schedule` trigger anymore (see SETUP.md), so GitHub's usual "repeated
+  scheduled-run failure" emails don't apply here, and there's no other
+  alerting built -- a sustained failure just fails silently until someone
+  notices the dashboard hasn't updated.
 
 ## Data sources & logic
 
