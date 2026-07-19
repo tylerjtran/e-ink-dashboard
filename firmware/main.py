@@ -27,7 +27,7 @@ except ImportError:
 # Update this if you fork/rename the repo.
 IMAGE_URL = "https://raw.githubusercontent.com/tylerjtran/e-ink-dashboard/main/dashboard/latest.bin"
 
-REFRESH_INTERVAL_S = 15 * 60
+REFRESH_INTERVAL_S = 5 * 60
 WIFI_CONNECT_TIMEOUT_S = 20
 RETRY_DELAY_S = 30
 
@@ -48,7 +48,7 @@ def connect_wifi():
     return wlan
 
 
-def fetch_and_display(epd):
+def fetch_and_display(epd, last_data):
     print("Fetching", IMAGE_URL)
     resp = requests.get(IMAGE_URL)
     try:
@@ -60,19 +60,30 @@ def fetch_and_display(epd):
     if len(data) != expected_len:
         raise ValueError("expected {} bytes, got {}".format(expected_len, len(data)))
 
+    # Polling is cheap (a small HTTPS GET, unrelated to GitHub Actions
+    # minutes), but a physical e-paper refresh is not -- it's a visible
+    # ~15-20s flash and a real refresh cycle against the panel's lifespan.
+    # Skip it when the fetched bytes match what's already on screen, e.g.
+    # every poll between two GitHub Actions runs.
+    if data == last_data:
+        print("No change since last display, skipping refresh")
+        return data
+
     epd.init()
     epd.buffer_1Gray[:] = data
     epd.display(epd.buffer_1Gray)
     epd.sleep()
     print("Display updated")
+    return data
 
 
 def main():
     epd = EPD_7in5()
+    last_data = None
     while True:
         try:
             connect_wifi()
-            fetch_and_display(epd)
+            last_data = fetch_and_display(epd, last_data)
             time.sleep(REFRESH_INTERVAL_S)
         except Exception as e:
             print("Refresh failed, will retry:", e)

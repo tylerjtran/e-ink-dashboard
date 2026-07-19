@@ -10,14 +10,18 @@ game status, and a pie-watch box for the local bakery.
 - **GitHub Actions** (`.github/workflows/refresh-dashboard.yml`) fetches
   data from various APIs, renders it to an 800x480 PNG, converts that to the
   raw byte format the display wants, and commits both to `dashboard/`.
-  Meant to run every ~15 minutes, but GitHub's own scheduling for Actions is
+  Meant to run frequently, but GitHub's own scheduling for Actions is
   best-effort and gets throttled to roughly hourly in practice -- see
-  SETUP.md for an optional external trigger to get real 15-minute updates.
+  SETUP.md for an optional external trigger to get real, frequent updates
+  (currently every 20 min from 7am-9pm Eastern, every 2 hours overnight).
 - **Raspberry Pi Pico 2 W** (`firmware/`) connects to Wi-Fi and downloads
-  `dashboard/latest.bin` on its own independent 15-minute timer, pushing it
+  `dashboard/latest.bin` on its own independent 5-minute timer, pushing it
   straight to a Waveshare 7.5" e-paper panel. It does no rendering of its
   own, and its timer isn't synced to the Action's -- it just checks
-  whatever's currently committed each time it wakes up.
+  whatever's currently committed each time it wakes up. It skips the actual
+  physical refresh (a visible flash, real wear on the panel) when the fetched
+  bytes match what's already displayed, so polling frequently doesn't mean
+  flashing frequently -- see `firmware/main.py`.
 
 See [docs/SETUP.md](docs/SETUP.md) for how to configure secrets, edit
 content like business hours, and flash the Pico -- including known gaps and
@@ -50,8 +54,9 @@ Two layers:
   typo, Playwright failing to launch), that whole run aborts and nothing
   gets committed -- the dashboard keeps showing its last successfully
   rendered image rather than a broken or half-updated one. Given the
-  15-minute cadence, a transient failure usually just delays the next
-  update by one cycle; a sustained one leaves the dashboard stale until it
+  refresh cadence (as fast as every 20 minutes -- see SETUP.md), a
+  transient failure usually just delays the next update by one cycle; a
+  sustained one leaves the dashboard stale until it
   clears (GitHub emails the repo owner by default on repeated scheduled-run
   failures, but there's no other alerting built here).
 
@@ -192,7 +197,7 @@ or overflowing, and logs a warning.
   Action, like the pie cache): the first check each day determines whether
   that team has a game today (live or scheduled). If not, later checks that
   same day reuse the cached result instead of re-fetching -- the answer
-  ("next game is in 3 days") won't change between 15-minute runs anyway. If
+  ("next game is in 3 days") won't change between runs anyway. If
   there is a game today, every run re-fetches so live status (inning,
   quarter, period) stays current. A failed fetch falls back to that team's
   cached result from earlier today rather than going blank.

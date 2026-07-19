@@ -7,10 +7,10 @@
    (`render/render.py`), converts that to the raw 1-bit buffer format the
    e-paper panel wants (`render/convert.py`), and commits the result to
    `dashboard/latest.bin` (and `latest.png`, for previewing in a browser).
-   It's *meant* to run every ~15 minutes, but GitHub's own `schedule`
-   trigger for Actions is best-effort and gets throttled to roughly hourly
-   in practice, regardless of the cron expression -- see section 2 below if
-   you want real 15-minute updates.
+   It's *meant* to run frequently, but GitHub's own `schedule` trigger for
+   Actions is best-effort and gets throttled to roughly hourly in practice,
+   regardless of the cron expression -- see section 2 below if you want
+   real, frequent updates.
 2. The Pico 2 W (`firmware/main.py`) connects to Wi-Fi, downloads
    `dashboard/latest.bin` over HTTPS, and pushes the bytes straight into the
    e-paper display. It does no rendering itself.
@@ -34,7 +34,7 @@ secret**. Add these four:
 Until these are set, the dashboard still renders: weather falls back to
 Open-Meteo only (no indoor temp), and birthdays shows nothing.
 
-## 2. Getting real 15-minute refreshes (optional)
+## 2. Getting more frequent refreshes (optional)
 
 GitHub's own `schedule` trigger is best-effort -- in practice it gets
 throttled to roughly once an hour on repos like this one, no matter what
@@ -43,7 +43,7 @@ platform limitation, not something fixable in the workflow file itself. If
 ~hourly updates are fine, skip this whole section -- the dashboard still
 refreshes on its own via that fallback schedule, no setup required.
 
-For real 15-minute updates, an external service needs to call GitHub's API
+For real, frequent updates, an external service needs to call GitHub's API
 to trigger the workflow (`workflow_dispatch`) on its own schedule, bypassing
 GitHub's throttled cron entirely:
 
@@ -57,13 +57,18 @@ GitHub's throttled cron entirely:
    - Copy the token somewhere safe -- GitHub only shows it once.
 2. Sign up for a free scheduling service that can make an authenticated
    HTTP request on a schedule -- e.g. [cron-job.org](https://cron-job.org)
-   (free tier supports intervals down to 1 minute). Set up a job:
+   (free tier supports intervals down to 1 minute, and per-job crontab
+   expressions in the job's own timezone). Set up a job:
    - URL: `https://api.github.com/repos/tylerjtran/e-ink-dashboard/actions/workflows/refresh-dashboard.yml/dispatches`
    - Method: `POST`
    - Headers: `Authorization: Bearer <your token>`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`
    - Body: `{"ref": "main"}`
-   - Schedule: every 15 minutes
-3. Trigger it once manually (most services have a "run now" / "test"
+   - Schedule: a single cron expression can't express two different
+     intervals, so this is actually **two jobs** with identical URL/method/
+     headers/body, timezone set to America/New_York:
+     - Daytime (every 20 min, 7am-9pm): `0,20,40 7-20 * * *`
+     - Overnight (every 2 hours, 9pm-7am): `0 21,23,1,3,5 * * *`
+3. Trigger each one manually (most services have a "run now" / "test"
    button) and confirm a new run shows up in the repo's **Actions** tab
    within a few seconds.
 
@@ -108,7 +113,8 @@ completely stale.
    and will draw test text/shapes on the panel, confirming the wiring and
    SPI pins are good independent of Wi-Fi/network code.
 6. Once that works, run `main.py`. It loops forever: connect Wi-Fi, fetch
-   `dashboard/latest.bin`, display it, sleep 15 minutes, repeat.
+   `dashboard/latest.bin`, display it (skipping the physical refresh if the
+   content hasn't changed since last time), sleep 5 minutes, repeat.
 
 If you rename or fork the repo, update `IMAGE_URL` in `firmware/main.py`.
 
