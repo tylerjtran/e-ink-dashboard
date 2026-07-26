@@ -195,6 +195,12 @@ or overflowing, and logs a warning.
   is free and unauthenticated but undocumented/unofficial -- it could
   change shape without notice, unlike the official MLB one. Live-game
   wording says "quarter" for football/basketball, "period" for hockey.
+- Home/away: "Phillies vs Braves" for home games, "Phillies @ Braves" for
+  away games -- determined from the MLB Stats API's `teams.home`/`teams.away`
+  team IDs, and ESPN's per-competitor `homeAway` field. Each of the 4 boxes
+  always leads with the Philadelphia team's own name (fixed box order:
+  Phillies, Eagles, Sixers, Flyers), so this only affects whether "vs" or
+  "@" appears before the opponent.
 - Any team shows as "Team: –" if no live or upcoming game is found (e.g.
   NBA/NFL off-season before the next schedule is published).
 - Cached per team in `render/game_watch_cache.json` (committed by the

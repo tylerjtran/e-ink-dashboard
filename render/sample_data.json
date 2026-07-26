@@ -12,8 +12,8 @@
     "chance_rain_pct": 20,
     "high_f": 78,
     "low_f": 61,
-    "normal_diff_str": "8° warmer than normal",
-    "philly_diff_str": "5° cooler than Philly",
+    "normal_diff_str": "8\u00b0 warmer than normal",
+    "philly_diff_str": "5\u00b0 cooler than Philly",
     "indoor_temp_f": 68,
     "burn_ban_str": "Low fire risk",
     "icon_name": "partly_cloudy_day"
@@ -26,7 +26,7 @@
   "river_reservoir": {
     "river_name": "East Branch of the Delaware",
     "river_temp_f": 64,
-    "river_normal_diff_str": "3° colder than normal",
+    "river_normal_diff_str": "3\u00b0 colder than normal",
     "reservoir_name": "Pepacton Reservoir",
     "reservoir_pct_full": 87,
     "reservoir_note": "Lower than normal"
@@ -37,26 +37,71 @@
     "new_this_month": 4
   },
   "business_watch": [
-    {"name": "Magpies", "is_open": false},
-    {"name": "Hamden General Store", "is_open": false},
-    {"name": "Tiny's", "is_open": false},
-    {"name": "Hamden Inn", "is_open": true},
-    {"name": "The Junction", "is_open": true},
-    {"name": "Dear Native Grapes", "is_open": false},
-    {"name": "Big M", "is_open": true},
-    {"name": "Dollar General", "is_open": true},
-    {"name": "Post Office", "is_open": false},
-    {"name": "Transfer Station", "is_open": false}
+    {
+      "name": "Magpies",
+      "is_open": false
+    },
+    {
+      "name": "Hamden General Store",
+      "is_open": false
+    },
+    {
+      "name": "Tiny's",
+      "is_open": false
+    },
+    {
+      "name": "Hamden Inn",
+      "is_open": true
+    },
+    {
+      "name": "The Junction",
+      "is_open": true
+    },
+    {
+      "name": "Dear Native Grapes",
+      "is_open": false
+    },
+    {
+      "name": "Big M",
+      "is_open": true
+    },
+    {
+      "name": "Dollar General",
+      "is_open": true
+    },
+    {
+      "name": "Post Office",
+      "is_open": false
+    },
+    {
+      "name": "Transfer Station",
+      "is_open": false
+    }
   ],
   "birthdays": {
-    "today": ["Mom", "Jacob Smith"],
+    "today": [
+      "Mom",
+      "Jacob Smith"
+    ],
     "upcoming": []
   },
   "game_watch": {
-    "phillies": {"name": "Phillies", "status": "vs Braves in progress, bottom of 6th"},
-    "eagles": {"name": "Eagles", "status": "vs Cowboys today at 1pm"},
-    "sixers": {"name": "Sixers", "status": null},
-    "flyers": {"name": "Flyers", "status": "vs Rangers tomorrow at 7pm"}
+    "phillies": {
+      "name": "Phillies",
+      "status": "vs Braves in progress, bottom of 6th"
+    },
+    "eagles": {
+      "name": "Eagles",
+      "status": "@ Cowboys today at 1pm"
+    },
+    "sixers": {
+      "name": "Sixers",
+      "status": null
+    },
+    "flyers": {
+      "name": "Flyers",
+      "status": "vs Rangers tomorrow at 7pm"
+    }
   },
   "pie_watch": {
     "message": null,

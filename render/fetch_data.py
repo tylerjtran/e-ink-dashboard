@@ -866,27 +866,32 @@ def fetch_mlb_game(settings, now):
 
     for game in games:
         if game["status"]["abstractGameState"] == "Live":
-            return _mlb_live_status(game, _mlb_opponent_name(game, team_id)), True
+            opponent, is_home = _mlb_opponent_info(game, team_id)
+            return _mlb_live_status(game, opponent, is_home), True
 
     for game in games:
         if game["status"]["abstractGameState"] != "Preview":
             continue
-        opponent = _mlb_opponent_name(game, team_id)
+        opponent, is_home = _mlb_opponent_info(game, team_id)
         game_dt = datetime.fromisoformat(game["gameDate"].replace("Z", "+00:00")).astimezone(ZoneInfo(tz_name))
         is_today = game_dt.date() == now.date()
-        status = f"vs {opponent} {fmt_relative_game_date(game_dt.date(), now.date())} at {fmt_time12(game_dt)}"
+        verb = "vs" if is_home else "@"
+        status = f"{verb} {opponent} {fmt_relative_game_date(game_dt.date(), now.date())} at {fmt_time12(game_dt)}"
         return status, is_today
 
     return None, False
 
 
-def _mlb_opponent_name(game, team_id):
+def _mlb_opponent_info(game, team_id):
+    """Returns (opponent_name, is_home) for our team in this game."""
     teams = game["teams"]
-    other = teams["away"] if teams["home"]["team"]["id"] == team_id else teams["home"]
-    return other["team"]["name"].split()[-1]  # e.g. "Atlanta Braves" -> "Braves"
+    is_home = teams["home"]["team"]["id"] == team_id
+    other = teams["away"] if is_home else teams["home"]
+    return other["team"]["name"].split()[-1], is_home  # e.g. "Atlanta Braves" -> "Braves"
 
 
-def _mlb_live_status(game, opponent):
+def _mlb_live_status(game, opponent, is_home):
+    verb = "vs" if is_home else "@"
     try:
         r = requests.get(
             f"https://statsapi.mlb.com/api/v1.1/game/{game['gamePk']}/feed/live",
@@ -895,10 +900,10 @@ def _mlb_live_status(game, opponent):
         r.raise_for_status()
         linescore = r.json()["liveData"]["linescore"]
         inning_state = linescore["inningState"].lower()  # "top", "bottom", "middle", "end"
-        return f"vs {opponent} in progress, {inning_state} of {_ordinal(linescore['currentInning'])}"
+        return f"{verb} {opponent} in progress, {inning_state} of {_ordinal(linescore['currentInning'])}"
     except Exception as e:
         print(f"[warn] MLB live feed fetch failed: {e}")
-        return f"vs {opponent} in progress"
+        return f"{verb} {opponent} in progress"
 
 
 def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name, period_label="quarter"):
@@ -918,33 +923,40 @@ def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name, period_lab
         comp = event["competitions"][0]
         status = comp["status"]
         state = status["type"]["state"]  # "pre", "in", "post"
-        opponent = _espn_opponent_name(comp, team_abbr)
+        opponent, is_home = _espn_opponent_info(comp, team_abbr)
+        verb = "vs" if is_home else "@"
 
         if state == "in":
             period = status.get("period")
             if period:
-                return f"vs {opponent} in progress, {_ordinal(period)} {period_label}", True
-            return f"vs {opponent} in progress", True
+                return f"{verb} {opponent} in progress, {_ordinal(period)} {period_label}", True
+            return f"{verb} {opponent} in progress", True
 
         if state == "pre":
             event_dt = datetime.fromisoformat(event["date"].replace("Z", "+00:00")).astimezone(ZoneInfo(tz_name))
             if event_dt.date() >= today:
-                upcoming.append((event_dt, opponent))
+                upcoming.append((event_dt, opponent, is_home))
 
     if not upcoming:
         return None, False
-    upcoming.sort(key=lambda pair: pair[0])
-    event_dt, opponent = upcoming[0]
-    status_str = f"vs {opponent} {fmt_relative_game_date(event_dt.date(), today)} at {fmt_time12(event_dt)}"
+    upcoming.sort(key=lambda tup: tup[0])
+    event_dt, opponent, is_home = upcoming[0]
+    verb = "vs" if is_home else "@"
+    status_str = f"{verb} {opponent} {fmt_relative_game_date(event_dt.date(), today)} at {fmt_time12(event_dt)}"
     return status_str, event_dt.date() == today
 
 
-def _espn_opponent_name(comp, team_abbr):
+def _espn_opponent_info(comp, team_abbr):
+    """Returns (opponent_name, is_home) for our team in this game."""
+    opponent = "TBD"
+    is_home = True
     for competitor in comp["competitors"]:
         team = competitor["team"]
-        if team["abbreviation"].lower() != team_abbr.lower():
-            return team.get("nickname") or team.get("shortDisplayName") or team.get("displayName", "TBD")
-    return "TBD"
+        if team["abbreviation"].lower() == team_abbr.lower():
+            is_home = competitor.get("homeAway") == "home"
+        else:
+            opponent = team.get("nickname") or team.get("shortDisplayName") or team.get("displayName", "TBD")
+    return opponent, is_home
 
 
 # --------------------------------------------------------------- pie watch --
