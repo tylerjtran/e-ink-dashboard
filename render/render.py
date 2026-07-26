@@ -24,8 +24,6 @@ def render_html(data: dict) -> str:
     return template.render(
         **data,
         plant_qr_uri=(ASSETS / "plant_qr_code.png").as_uri(),
-        open_window_uri=(ASSETS / "open_window.png").as_uri(),
-        closed_window_uri=(ASSETS / "closed_window.png").as_uri(),
     )
 
 
