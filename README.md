@@ -69,15 +69,18 @@ Two layers:
 All fetching/computation lives in `render/fetch_data.py` unless noted.
 Config (locations, hours, thresholds) lives in `render/config/*.yaml`.
 
-**Layout note**: Birthday Watch, Game Watch, and Pie Watch have genuinely
-variable-length content (more simultaneous live games, more birthdays, more
-pies). `render/render.py`'s `fit_variable_boxes()` measures each box's real
-content height in the browser (before the final screenshot) and sizes them
-to fit exactly, instead of relying on hand-picked flex ratios that only
-happen to match today's content. If content ever exceeds the available
-space in the 800x480 canvas (a hard physical limit -- the display can't
-scroll), it shrinks that content's text proportionally rather than clipping
-or overflowing, and logs a warning.
+**Layout note**: every box's content length varies somewhat run to run
+(more simultaneous live games, more birthdays, more pies, a meteor shower
+mention or not, longer/shorter weather notes). `render/render.py`'s
+`fit_variable_boxes()` measures each box's real content height in the
+browser (before the final screenshot) and sizes every box in both columns
+to fit exactly -- each column is measured and sized independently -- instead
+of relying on hand-picked flex ratios that only happen to match today's
+content. The template's inline `style="flex: N"` values are just a starting
+point/fallback; the real sizing always comes from this measurement. If
+content ever exceeds the available space in the 800x480 canvas (a hard
+physical limit -- the display can't scroll), it shrinks that content's text
+proportionally rather than clipping or overflowing, and logs a warning.
 
 **Weather**
 - Outdoor + indoor temp: Ambient Weather Network (your station), falling

@@ -28,11 +28,14 @@ def render_html(data: dict) -> str:
 
 
 # Boxes whose content length varies run to run (more/fewer live games,
-# birthdays, pies) rather than being fixed by design (unlike e.g. Business
-# Watch, which is one line per configured business). Their template flex
-# values are just a reasonable starting point/fallback -- _fit_variable_boxes
-# overrides them based on actually-measured content each render.
-VARIABLE_CONTENT_BOX_IDS = ["birthdays", "game-watch", "pie-watch"]
+# birthdays, pies, a meteor-shower mention or not) rather than being fixed by
+# design (unlike e.g. Business Watch, which is one line per configured
+# business). Their template flex values are just a reasonable starting
+# point/fallback -- fit_variable_boxes overrides them based on
+# actually-measured content each render. Each column is measured/sized
+# independently, since column heights aren't shared with each other.
+LEFT_COLUMN_BOX_IDS = ["weather", "skygazing", "river-reservoir"]
+RIGHT_COLUMN_BOX_IDS = ["birthdays", "game-watch", "pie-watch"]
 
 # JS, not Python: needs real layout/measurement (scrollHeight, computed
 # styles) that only exist in the rendered page.
@@ -48,10 +51,17 @@ _FIT_VARIABLE_BOXES_JS = """
         const paddingV = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
         const borderV = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
         const titleMarginBottom = parseFloat(getComputedStyle(title).marginBottom) || 0;
-        // scrollHeight reflects the box-body's true content height even
-        // while overflow:hidden is clipping it visually -- that's exactly
-        // what we need to measure before deciding how much room to give it.
-        return title.offsetHeight + titleMarginBottom + body.scrollHeight + paddingV + borderV;
+        // .box-body has `flex: 1` (basis 0%) so it normally stretches to
+        // fill whatever height its box currently has -- scrollHeight would
+        // then just report that stretched size (never smaller), hiding how
+        // little room genuinely-short content needs. Temporarily switch to
+        // content-driven sizing to measure the real natural height, then
+        // restore it so the final layout below still works as designed.
+        const prevBodyFlex = body.style.flex;
+        body.style.flex = '0 0 auto';
+        const naturalBodyHeight = body.scrollHeight;
+        body.style.flex = prevBodyFlex;
+        return title.offsetHeight + titleMarginBottom + naturalBodyHeight + paddingV + borderV;
     };
 
     const heights = boxes.map(naturalHeight);
@@ -88,14 +98,15 @@ _FIT_VARIABLE_BOXES_JS = """
 
 
 def fit_variable_boxes(page) -> None:
-    result = page.evaluate(_FIT_VARIABLE_BOXES_JS, VARIABLE_CONTENT_BOX_IDS)
-    if not result["fit"]:
-        print(
-            f"[render] WARNING: right-column content ({result['totalNatural']:.0f}px) exceeded "
-            f"available height ({result['available']:.0f}px) -- shrank text by "
-            f"{result['scale']:.2f}x to fit. Consider capping content further "
-            f"(e.g. fewer upcoming birthdays/pies) if this happens often."
-        )
+    for label, box_ids in [("left", LEFT_COLUMN_BOX_IDS), ("right", RIGHT_COLUMN_BOX_IDS)]:
+        result = page.evaluate(_FIT_VARIABLE_BOXES_JS, box_ids)
+        if not result["fit"]:
+            print(
+                f"[render] WARNING: {label}-column content ({result['totalNatural']:.0f}px) exceeded "
+                f"available height ({result['available']:.0f}px) -- shrank text by "
+                f"{result['scale']:.2f}x to fit. Consider capping content further "
+                f"if this happens often."
+            )
 
 
 def html_to_png(html: str, out_path: Path) -> None:
