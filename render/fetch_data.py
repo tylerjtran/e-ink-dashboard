@@ -580,26 +580,22 @@ def fetch_plant_watch(settings):
     base = "https://api.inaturalist.org/v1/observations/species_counts"
     try:
         current = _inat_species_ids(base, slug)
-        first_of_month = date.today().replace(day=1)
-        day_before = first_of_month - timedelta(days=1)
-        # d2 (observed date, when the sighting happened), not created_d2
-        # (when it was added/IDed in iNaturalist) -- "new this month" tracks
-        # freshly sighted species. Note: this endpoint's date-range params
-        # are bare d1/d2, not observed_d1/observed_d2 (that's the regular
-        # /v1/observations search endpoint's naming) -- confirmed against
-        # the live API, since observed_d2 is silently ignored here and was
-        # making "new this month" always compute to zero.
-        before_this_month = _inat_species_ids(base, slug, d2=day_before.isoformat())
         native = _inat_species_ids(base, slug, extra={"native": "true"})
 
+        # Introduced = everything not confirmed native, rather than a
+        # separate native=false query -- guarantees native_count +
+        # introduced_count always equals species_count on the display, even
+        # if a species has no established-status classification at all
+        # (native=true/false aren't the only two possible states in
+        # iNaturalist's data model).
         return {
             "species_count": len(current),
             "native_count": len(native),
-            "new_this_month": len(current - before_this_month),
+            "introduced_count": len(current) - len(native),
         }
     except Exception as e:
         print(f"[warn] iNaturalist fetch failed: {e}")
-        return {"species_count": "—", "native_count": "—", "new_this_month": "—"}
+        return {"species_count": "—", "native_count": "—", "introduced_count": "—"}
 
 
 def _inat_species_ids(base_url, project_slug, d2=None, extra=None):

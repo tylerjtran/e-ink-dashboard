@@ -152,10 +152,12 @@ proportionally rather than clipping or overflowing, and logs a warning.
   `iconic_taxa=Plantae` (excludes animal observations in the same project)
   and to species-level taxon rank only (excludes genus/family-level IDs like
   "Rubus" with no species determined).
-- "New species this month": species whose *observation* date (when the
-  sighting happened, not when it was added/IDed in iNaturalist) falls after
-  the start of the current month -- computed as a set difference between
-  all-time species and species observed before this month.
+- "N introduced species": total species minus native species (`native:
+  "true"` filter on the same endpoint), rather than a separate `native:
+  "false"` query -- guarantees the native/introduced counts always sum to
+  the total shown, even if a species has no established-status
+  classification at all in iNaturalist's data (native=true/false aren't the
+  only two possible states).
 - The QR code in the corner (linking to the iNaturalist project) is a
   static image, `render/assets/plant_qr_code.png` -- not generated at
   render time.
