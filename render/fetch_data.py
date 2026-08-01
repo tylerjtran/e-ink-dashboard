@@ -582,10 +582,14 @@ def fetch_plant_watch(settings):
         current = _inat_species_ids(base, slug)
         first_of_month = date.today().replace(day=1)
         day_before = first_of_month - timedelta(days=1)
-        # observed_d2 (when the sighting happened), not created_d2 (when it
-        # was added/IDed in iNaturalist) -- "new this month" tracks freshly
-        # sighted species.
-        before_this_month = _inat_species_ids(base, slug, observed_d2=day_before.isoformat())
+        # d2 (observed date, when the sighting happened), not created_d2
+        # (when it was added/IDed in iNaturalist) -- "new this month" tracks
+        # freshly sighted species. Note: this endpoint's date-range params
+        # are bare d1/d2, not observed_d1/observed_d2 (that's the regular
+        # /v1/observations search endpoint's naming) -- confirmed against
+        # the live API, since observed_d2 is silently ignored here and was
+        # making "new this month" always compute to zero.
+        before_this_month = _inat_species_ids(base, slug, d2=day_before.isoformat())
         native = _inat_species_ids(base, slug, extra={"native": "true"})
 
         return {
@@ -598,12 +602,12 @@ def fetch_plant_watch(settings):
         return {"species_count": "—", "native_count": "—", "new_this_month": "—"}
 
 
-def _inat_species_ids(base_url, project_slug, observed_d2=None, extra=None):
+def _inat_species_ids(base_url, project_slug, d2=None, extra=None):
     # iconic_taxa=Plantae: the project also has non-plant (e.g. animal)
     # observations that shouldn't count toward "species identified".
     params = {"project_id": project_slug, "iconic_taxa": "Plantae", "per_page": 200}
-    if observed_d2:
-        params["observed_d2"] = observed_d2
+    if d2:
+        params["d2"] = d2
     if extra:
         params.update(extra)
     ids = set()

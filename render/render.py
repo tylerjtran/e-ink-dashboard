@@ -70,13 +70,14 @@ _FIT_VARIABLE_BOXES_JS = """
     const available = column.clientHeight;
 
     if (totalNatural <= available) {
-        // Fits: size each box to exactly what its content needs (no grow,
-        // no shrink -- content-driven, not an arbitrary ratio), and let the
-        // last box absorb any leftover column space so the column still
-        // fills its height instead of leaving a stray gap at the bottom.
+        // Fits: give each box its natural height as a baseline, then
+        // distribute any leftover column space proportionally by each box's
+        // own natural size -- so the column still fills its height, but
+        // slack doesn't all pile into whichever box happens to be last.
+        // Boxes with more content get proportionally more breathing room,
+        // instead of one box ballooning while its neighbors sit bare-minimum.
         boxes.forEach((box, i) => {
-            const grow = i === boxes.length - 1 ? 1 : 0;
-            box.style.flex = `${grow} 0 ${heights[i]}px`;
+            box.style.flex = `${heights[i]} 0 ${heights[i]}px`;
         });
         return { fit: true, totalNatural, available };
     }
