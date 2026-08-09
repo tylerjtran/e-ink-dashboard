@@ -61,6 +61,15 @@ The Junction:
   sat: ["16:00-23:00"]
   sun: ["16:00-23:00"]
 
+Mornings:
+  mon: ["07:00-14:00"]
+  tue: closed
+  wed: closed
+  thu: ["07:00-14:00"]
+  fri: ["07:00-14:00"]
+  sat: ["07:00-14:00"]
+  sun: ["07:00-14:00"]
+
 Dear Native Grapes:
   mon: closed
   tue: closed
