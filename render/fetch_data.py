@@ -576,11 +576,12 @@ def _save_reservoir_cache(today_str, pct_full, note):
 # -------------------------------------------------------------- plant watch --
 
 def fetch_plant_watch(settings):
-    slug = settings["inaturalist"]["project_slug"]
+    place_id = settings["inaturalist"]["place_id"]
+    allowed_users = settings["inaturalist"]["allowed_users"]
     base = "https://api.inaturalist.org/v1/observations/species_counts"
     try:
-        current = _inat_species_ids(base, slug)
-        native = _inat_species_ids(base, slug, extra={"native": "true"})
+        current = _inat_species_ids(base, place_id, allowed_users)
+        native = _inat_species_ids(base, place_id, allowed_users, extra={"native": "true"})
 
         # Introduced = everything not confirmed native, rather than a
         # separate native=false query -- guarantees native_count +
@@ -598,10 +599,19 @@ def fetch_plant_watch(settings):
         return {"species_count": "—", "native_count": "—", "introduced_count": "—"}
 
 
-def _inat_species_ids(base_url, project_slug, d2=None, extra=None):
-    # iconic_taxa=Plantae: the project also has non-plant (e.g. animal)
+def _inat_species_ids(base_url, place_id, allowed_users, d2=None, extra=None):
+    # iconic_taxa=Plantae: the place also has non-plant (e.g. animal)
     # observations that shouldn't count toward "species identified".
-    params = {"project_id": project_slug, "iconic_taxa": "Plantae", "per_page": 200}
+    # user_login (comma-separated logins, confirmed against the live API --
+    # place_id does NOT accept a slug, only the numeric id) restricts counts
+    # to observations from the allowed observers, not everyone who's ever
+    # logged a sighting within the place boundary.
+    params = {
+        "place_id": place_id,
+        "user_login": ",".join(allowed_users),
+        "iconic_taxa": "Plantae",
+        "per_page": 200,
+    }
     if d2:
         params["d2"] = d2
     if extra:

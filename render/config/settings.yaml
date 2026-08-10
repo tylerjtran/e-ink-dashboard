@@ -57,7 +57,18 @@ nyc_reservoir:
     dec: 82
 
 inaturalist:
-  project_slug: "boy-scout-road"
+  # The "Boy Scout Road" iNaturalist *place* (a geographic boundary), not a
+  # project -- place_id must be the numeric id, confirmed against the live
+  # API that a slug string isn't accepted here (unlike project_id, which
+  # does take a slug). Find/re-find it via
+  # https://api.inaturalist.org/v1/places/autocomplete?q=boy+scout+road
+  place_id: 235670
+  # Only observations from these iNaturalist usernames (case-insensitive)
+  # count toward Plant Watch -- add more logins here any time, no code
+  # changes needed.
+  allowed_users:
+    - "tylerjtran"
+    - "royersofbb"
 
 mlb:
   team_id: 143  # Philadelphia Phillies

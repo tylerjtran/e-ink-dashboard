@@ -147,10 +147,17 @@ proportionally rather than clipping or overflowing, and logs a warning.
   enough that stale still beats blank.
 
 **Plant Watch**
-- iNaturalist species_counts for the [Boy Scout Road
-  project](https://www.inaturalist.org/projects/boy-scout-road), filtered to
-  `iconic_taxa=Plantae` (excludes animal observations in the same project)
-  and to species-level taxon rank only (excludes genus/family-level IDs like
+- iNaturalist species_counts for the "Boy Scout Road" iNaturalist *place*
+  (a geographic boundary, `inaturalist.place_id` in `settings.yaml` --
+  confirmed against the live API that this endpoint needs the numeric id,
+  not a slug), restricted to observations from `inaturalist.allowed_users`
+  (currently tylerjtran and royersofbb) via the `user_login` filter -- add
+  more logins to that list any time, no code changes needed. Not the same
+  data source as the old "Boy Scout Road" iNaturalist *project*, which only
+  included observations manually added to it; the place-based query picks
+  up everything the allowed users logged within the boundary. Also filtered
+  to `iconic_taxa=Plantae` (excludes animal observations) and to
+  species-level taxon rank only (excludes genus/family-level IDs like
   "Rubus" with no species determined).
 - "N introduced species": total species minus native species (`native:
   "true"` filter on the same endpoint), rather than a separate `native:
