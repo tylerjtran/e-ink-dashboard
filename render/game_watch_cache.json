@@ -1,8 +1,8 @@
 {
   "phillies": {
     "date": "2026-08-13",
-    "status": "@ Twins in progress, top of 5th",
-    "has_game_today": true
+    "status": "@ Twins August 15 at 7:10pm",
+    "has_game_today": false
   },
   "eagles": {
     "date": "2026-08-13",
