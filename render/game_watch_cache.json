@@ -1,12 +1,12 @@
 {
   "phillies": {
     "date": "2026-08-22",
-    "status": "vs Cardinals in progress, bottom of 3rd",
+    "status": "vs Cardinals in progress, top of 5th",
     "has_game_today": true
   },
   "eagles": {
     "date": "2026-08-22",
-    "status": "@ Patriots today at 7:00pm",
+    "status": "@ Patriots in progress, 1st quarter",
     "has_game_today": true
   },
   "sixers": {
