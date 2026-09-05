@@ -883,16 +883,31 @@ def _mlb_live_status(game, opponent, is_home):
         return f"{verb} {opponent} in progress"
 
 
+ESPN_SEASON_TYPES = (1, 2, 3)  # preseason, regular season, postseason
+
+
 def fetch_espn_game(sport_path, league_path, team_abbr, now, tz_name, period_label="quarter"):
     """Returns (status_str_or_None, has_game_today). Raises on fetch failure
     (schedule request itself) -- the caller (_fetch_team_game_cached)
     decides whether to fall back to a cached result."""
-    r = requests.get(
-        f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league_path}/teams/{team_abbr}/schedule",
-        timeout=REQUEST_TIMEOUT,
-    )
-    r.raise_for_status()
-    events = r.json().get("events", [])
+    # Omitting `seasontype` lets ESPN pick whichever season type *it* thinks
+    # is "current" based on today's date -- confirmed against the live API
+    # that this can lag at season boundaries. On 2026-09-05, with the last
+    # NFL preseason game already final and the regular season not yet
+    # started, the default endpoint still resolved to
+    # requestedSeason={"type": 1, "name": "Preseason"} and returned only the
+    # 3 (all-completed) preseason games, silently hiding the real upcoming
+    # regular-season schedule. Querying all three season types explicitly
+    # and merging sidesteps ESPN's resolution entirely.
+    events = []
+    for seasontype in ESPN_SEASON_TYPES:
+        r = requests.get(
+            f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/{league_path}/teams/{team_abbr}/schedule",
+            params={"seasontype": seasontype},
+            timeout=REQUEST_TIMEOUT,
+        )
+        r.raise_for_status()
+        events.extend(r.json().get("events", []))
 
     today = now.date()
     upcoming = []
