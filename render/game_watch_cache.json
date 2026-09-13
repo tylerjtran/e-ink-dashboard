@@ -1,12 +1,12 @@
 {
   "phillies": {
     "date": "2026-09-13",
-    "status": "@ Braves in progress, middle of 9th",
-    "has_game_today": true
+    "status": "@ Nationals September 15 at 6:45pm",
+    "has_game_today": false
   },
   "eagles": {
     "date": "2026-09-13",
-    "status": "vs Commanders today at 4:25pm",
+    "status": "vs Commanders in progress, 1st quarter",
     "has_game_today": true
   },
   "sixers": {
