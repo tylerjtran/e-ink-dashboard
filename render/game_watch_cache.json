@@ -1,13 +1,13 @@
 {
   "phillies": {
     "date": "2026-09-20",
-    "status": "@ Mets in progress, top of 8th",
+    "status": "@ Mets in progress, bottom of 9th",
     "has_game_today": true
   },
   "eagles": {
     "date": "2026-09-20",
-    "status": "@ Titans in progress, 4th quarter",
-    "has_game_today": true
+    "status": "@ Bears September 28 at 8:15pm",
+    "has_game_today": false
   },
   "sixers": {
     "date": "2026-09-20",
