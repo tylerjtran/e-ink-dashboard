@@ -1,22 +1,22 @@
 {
   "phillies": {
-    "date": "2026-09-24",
-    "status": "vs Rays tomorrow at 6:40pm",
-    "has_game_today": false
+    "date": "2026-09-25",
+    "status": "vs Rays today at 6:40pm",
+    "has_game_today": true
   },
   "eagles": {
-    "date": "2026-09-24",
+    "date": "2026-09-25",
     "status": "@ Bears September 28 at 8:15pm",
     "has_game_today": false
   },
   "sixers": {
-    "date": "2026-09-24",
+    "date": "2026-09-25",
     "status": "vs Knicks October 5 at 7:00pm",
     "has_game_today": false
   },
   "flyers": {
-    "date": "2026-09-24",
-    "status": "vs Capitals September 26 at 5:00pm",
+    "date": "2026-09-25",
+    "status": "vs Capitals tomorrow at 5:00pm",
     "has_game_today": false
   }
 }
