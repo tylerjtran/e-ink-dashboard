@@ -1,7 +1,7 @@
 {
   "phillies": {
     "date": "2026-09-26",
-    "status": "vs Rays in progress, top of 1st",
+    "status": "vs Rays in progress, middle of 2nd",
     "has_game_today": true
   },
   "eagles": {
@@ -16,7 +16,7 @@
   },
   "flyers": {
     "date": "2026-09-26",
-    "status": "vs Capitals in progress, 3rd period",
-    "has_game_today": true
+    "status": "vs Penguins September 30 at 7:30pm",
+    "has_game_today": false
   }
 }
