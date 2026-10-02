@@ -1,7 +1,7 @@
 {
   "phillies": {
     "date": "2026-10-01",
-    "status": "@ Braves in progress, top of 1st",
+    "status": "@ Braves in progress, top of 2nd",
     "has_game_today": true
   },
   "eagles": {
@@ -16,7 +16,7 @@
   },
   "flyers": {
     "date": "2026-10-01",
-    "status": "@ Devils in progress, 2nd period",
+    "status": "@ Devils in progress, 1st period",
     "has_game_today": true
   }
 }
