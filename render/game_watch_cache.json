@@ -11,12 +11,12 @@
   },
   "sixers": {
     "date": "2026-10-05",
-    "status": "vs Knicks today at 7:00pm",
+    "status": "vs Knicks in progress, 1st quarter",
     "has_game_today": true
   },
   "flyers": {
     "date": "2026-10-05",
-    "status": "@ Lightning today at 7:00pm",
+    "status": "@ Lightning in progress, 1st period",
     "has_game_today": true
   }
 }
