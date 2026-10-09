@@ -11,12 +11,12 @@
   },
   "sixers": {
     "date": "2026-10-08",
-    "status": "@ Nets in progress, 2nd quarter",
-    "has_game_today": true
+    "status": "@ Celtics October 10 at 8:00pm",
+    "has_game_today": false
   },
   "flyers": {
     "date": "2026-10-08",
-    "status": "@ Senators in progress, 2nd period",
-    "has_game_today": true
+    "status": "@ Bruins October 10 at 1:00pm",
+    "has_game_today": false
   }
 }
