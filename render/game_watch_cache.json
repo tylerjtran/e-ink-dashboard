@@ -16,7 +16,7 @@
   },
   "flyers": {
     "date": "2026-10-10",
-    "status": "@ Bruins in progress, 3rd period",
-    "has_game_today": true
+    "status": "vs Hurricanes tomorrow at 7:00pm",
+    "has_game_today": false
   }
 }
