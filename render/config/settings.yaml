@@ -10,9 +10,13 @@ philly:
   lon: -75.1652
 
 electric:
-  peak_days: [mon, tue, wed, thu, fri]
-  peak_start: "16:00"
-  peak_end: "18:00"
+  # Off-peak window, every day, in fixed Eastern *Standard* Time (UTC-5)
+  # year-round -- it does not shift with daylight saving, so in summer
+  # (EDT) it's 12:30am-8:00am on the local clock. Everything outside it is
+  # on-peak.
+  offpeak_start: "23:30"
+  offpeak_end: "07:00"
+  utc_offset_hours: -5
 
 ambient_weather:
   # apiKey / applicationKey / mac come from env vars (GitHub secrets):

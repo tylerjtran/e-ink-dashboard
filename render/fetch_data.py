@@ -16,7 +16,7 @@ import argparse
 import json
 import os
 import re
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, timezone, date
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -1059,16 +1059,22 @@ def _save_pie_cache(pies, confirmed_week_start, attempted_at):
 
 def get_electric_note(settings, now):
     cfg = settings["electric"]
-    day_key = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][now.weekday()]
-    if day_key not in cfg["peak_days"]:
+    # The off-peak window is defined in fixed Eastern *Standard* Time (UTC-5)
+    # year-round, so it doesn't shift with daylight saving -- compare in
+    # that fixed offset, not the local (EST/EDT) clock.
+    utility_tz = timezone(timedelta(hours=cfg["utc_offset_hours"]))
+    utility_now = now.astimezone(utility_tz)
+    now_minutes = utility_now.hour * 60 + utility_now.minute
+    start_min = _hhmm_to_minutes(cfg["offpeak_start"])
+    end_min = _hhmm_to_minutes(cfg["offpeak_end"])
+    # Window wraps past midnight (e.g. 23:30 -> 07:00).
+    if now_minutes >= start_min or now_minutes < end_min:
         return "Off-peak electric"
-    now_minutes = now.hour * 60 + now.minute
-    start_min = _hhmm_to_minutes(cfg["peak_start"])
-    end_min = _hhmm_to_minutes(cfg["peak_end"])
-    if start_min <= now_minutes < end_min:
-        end_label = fmt_hour12(datetime.strptime(cfg["peak_end"], "%H:%M"))
-        return f"On-peak electric until {end_label}"
-    return "Off-peak electric"
+    # On-peak runs until off-peak starts today; show that boundary on the
+    # local clock the rest of the dashboard uses.
+    h, m = (int(x) for x in cfg["offpeak_start"].split(":"))
+    boundary_local = utility_now.replace(hour=h, minute=m, second=0, microsecond=0).astimezone(now.tzinfo)
+    return f"On-peak electric until {fmt_time12(boundary_local)}"
 
 
 # --------------------------------------------------------------------- main --

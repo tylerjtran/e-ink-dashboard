@@ -232,5 +232,9 @@ proportionally rather than clipping or overflowing, and logs a warning.
   to the last cached list rather than showing nothing.
 
 **Electric note**
-- Config-driven peak/off-peak schedule (`electric` in `settings.yaml`), no
-  external calls.
+- Config-driven off-peak window (`electric` in `settings.yaml`), no external
+  calls: off-peak is 11:30pm-7:00am every day, defined in fixed Eastern
+  *Standard* Time (UTC-5) year-round, so it doesn't shift with daylight
+  saving -- during EDT that's 12:30am-8:00am on the local clock. Everything
+  outside the window is on-peak, shown as "On-peak electric until [time]"
+  with the end time converted to the local clock.
