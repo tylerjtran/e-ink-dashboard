@@ -24,7 +24,19 @@ jobs:
         working-directory: render
         run: |
           pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
+          # --with-deps runs apt-get, which occasionally fails outright when
+          # the runner can't resolve Ubuntu's mirrors (a transient network
+          # problem on GitHub's side, not something in this repo) -- retry
+          # instead of failing the whole run (and emailing about it).
+          for attempt in 1 2 3; do
+            python -m playwright install --with-deps chromium && break
+            if [ "$attempt" = 3 ]; then
+              echo "Playwright install failed after 3 attempts"
+              exit 1
+            fi
+            echo "Playwright install failed (attempt $attempt), retrying in 30s..."
+            sleep 30
+          done
 
       - name: Fetch data
         working-directory: render
