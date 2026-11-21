@@ -154,18 +154,22 @@ to test those two, export the same four env vars locally before running it.
 - **Weather/reservoir "normal" comparisons** are rough monthly-average
   tables (`render/config/settings.yaml`), not official daily normals --
   good enough for a ballpark "warmer/lower than normal" line, not precise.
-- **Pie Watch** (`render/scrape_pie.py`) scrapes Magpies' plain Square
-  Online order page (`ORDER_URL`, no specific category path -- letting the
-  site show whatever's currently available rather than hardcoding a
-  category ID, since an earlier attempt at that got redirected away from
-  the category by the site itself). The `[wrapperid='order-product-title']`
-  selector has been confirmed working against real Action-run logs -- it
-  found and correctly extracted 3 real pie names. Still worth keeping an
-  eye on, since Square could change their markup at any time, but this
-  isn't a guess anymore. It fails soft either way (falls back to the last
-  good cached list, or "Check back soon" if there's never been one), so a
-  future broken selector won't break the dashboard, it'll just keep showing
-  stale/placeholder content and retry on the next run.
+- **Pie Watch** (`render/scrape_pie.py`) loads Magpies' Square Online shop,
+  finds the "Pre-Orders at Magpies" category link by its visible name
+  (`CATEGORY_NAME`) and follows it, then reads the product titles
+  (`.w-product-title`). It looks the category up by name rather than a
+  hardcoded category ID, since Magpies has renamed/reshuffled categories
+  before. History: in 2026-11 Square changed the site -- the plain order URL
+  started redirecting to the full shop and the old
+  `[wrapperid='order-product-title']` selector vanished -- and the scraper
+  silently returned nothing for ~3 weeks (the dashboard kept showing a
+  stale one-pie cache). The rewrite was verified against the live site in a
+  real browser (returned the 3 pies Magpies actually listed). If it breaks
+  again it fails soft: logs diagnostics (including every `/shop/` link text
+  on the page, which makes a renamed category obvious) and falls back to the
+  last good cached list, or "Check back soon" if there's never been one --
+  so look for `[scrape_pie]` lines in the Action's "Fetch data" step if the
+  pies ever look stale for more than a week.
 - **Pie Watch confirm-different-content logic**: after blackout ends (Tue
   3pm), a successful scrape that returns the *same* list as what's already
   cached is deliberately **not** confirmed as the new week's menu -- it's

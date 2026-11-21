@@ -215,8 +215,9 @@ proportionally rather than clipping or overflowing, and logs a warning.
   message, no scraping attempted. (Originally Tue 9am -- moved to 3pm since
   Magpies updates their menu for the week later than 9am, though the
   confirm-different-content check below matters more than this exact time.)
-- Once blackout ends, scrapes Magpies' Square Online order page
-  (`render/scrape_pie.py`) and compares the result against the currently
+- Once blackout ends, scrapes the "Pre-Orders at Magpies" category of
+  Magpies' Square Online shop (`render/scrape_pie.py`, found by its visible
+  category name) and compares the result against the currently
   cached list -- if it's the *same*, the site probably hasn't posted the
   new week's menu yet, so that result is **not** confirmed as this week's;
   it keeps showing the old (still-accurate) list and tries again after
