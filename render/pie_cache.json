@@ -1,7 +1,9 @@
 {
   "pies": [
-    "Candy bar pie"
+    "Tipsy key lime pie",
+    "Local sour cherry-almond",
+    "Local chicken pot pie"
   ],
-  "confirmed_week_start": "2026-11-03T15:00:00-05:00",
-  "last_attempt_at": "2026-11-21T07:00:43.988374-05:00"
+  "confirmed_week_start": "2026-11-17T15:00:00-05:00",
+  "last_attempt_at": "2026-11-21T10:20:42.230140-05:00"
 }
