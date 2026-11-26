@@ -11,12 +11,12 @@
   },
   "sixers": {
     "date": "2026-11-25",
-    "status": "vs Heat in progress, 4th quarter",
-    "has_game_today": true
+    "status": "@ Pacers November 27 at 7:30pm",
+    "has_game_today": false
   },
   "flyers": {
     "date": "2026-11-25",
-    "status": "@ Capitals today at 7:00pm",
+    "status": "@ Capitals in progress, 1st period",
     "has_game_today": true
   }
 }
